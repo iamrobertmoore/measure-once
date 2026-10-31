@@ -1,0 +1,26 @@
+{
+  "name": "measure-once",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@meta-sam/parser": "^0.1.0",
+    "openai": "^7.47.0",
+    "sharp": "^0.35.5"
+  },
+  "type": "module"
+}

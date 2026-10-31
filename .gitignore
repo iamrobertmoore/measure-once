@@ -1,0 +1,9 @@
+node_modules/
+.secrets/
+.env*
+working/
+secrets/
+answer-key/
+fixtures/private/
+.vercel/
+fixtures/*.jpg
