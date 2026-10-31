@@ -1,0 +1,80 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Concept A: the tape snaps</title>
+<style>
+@font-face{font-family:Archivo;src:url(node_modules/@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2) format("woff2");font-weight:100 900;font-stretch:62% 125%}
+:root{--walnut:#21160f;--walnut2:#2e2016;--birch:#ecdcc3;--tape:#f4c430;--tape-ink:#2b2108;--graphite:#8d857b;--cut:#d4462b}
+html,body{margin:0;width:1920px;height:1080px;background:var(--walnut);overflow:hidden;font-family:Archivo,sans-serif;color:var(--birch)}
+#stage{position:absolute;left:0;top:0;width:1440px;height:1080px;overflow:hidden;background:#000}
+#photo{position:absolute;left:-90px;top:0;width:1620px;height:1080px;opacity:0;filter:saturate(.9) brightness(.92)}
+svg{position:absolute;left:0;top:0;width:1440px;height:1080px}
+#panel{position:absolute;left:1440px;top:0;width:480px;height:1080px;background:var(--walnut);box-sizing:border-box;padding:72px 56px}
+.k{font-size:22px;font-stretch:100%;color:var(--graphite);letter-spacing:.01em;margin:0 0 10px}
+.big{font-size:176px;line-height:.86;font-weight:760;font-stretch:62%;color:var(--birch);font-variant-numeric:tabular-nums;margin:0}
+.big small{font-size:64px;font-weight:600;margin-left:8px;color:var(--graphite)}
+.row{margin-top:40px;opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}
+.row.on{opacity:1;transform:none}
+.mid{font-size:64px;font-weight:700;font-stretch:75%;line-height:1}
+.note{font-size:26px;line-height:1.35;font-stretch:96%;color:var(--birch);margin-top:14px;max-width:360px}
+.cut{color:var(--cut)}
+.mark{position:absolute;left:56px;bottom:72px;font-size:22px;color:var(--graphite);font-stretch:100%}
+</style></head>
+<body>
+<div id="stage"><img id="photo" src="scene.jpg"><svg id="s"></svg></div>
+<div id="panel">
+  <p class="k">Frame width, measured from the clip</p>
+  <p class="big"><span id="w">0.0</span><small>cm</small></p>
+  <div class="row" id="r1"><p class="k">Recommended</p><p class="mid"><span id="stock">150</span> cm pole</p><p class="mid cut" id="arrow" style="min-height:64px"></p><p class="note" id="n1"></p></div>
+  <div class="row" id="r2"><p class="k">Before you order</p><p class="note" id="n2"></p></div>
+  
+</div>
+<script src="scene.js"></script>
+<script>
+const S=window.SCENE, sc=0.84375, ox=-90, P=p=>[p.x*sc+ox, p.y*sc];
+const svg=document.getElementById('s'), NS='http://www.w3.org/2000/svg';
+const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);svg.appendChild(e);return e};
+const ease=t=>t<0?0:t>1?1:1-Math.pow(1-t,3), back=t=>{t=Math.min(1,Math.max(0,t));const c=1.9;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2)};
+const lerp=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+// grid lines from the wall plane
+const grid=S.grid.map(([a,b])=>el('line',{x1:P(a)[0],y1:P(a)[1],x2:P(b)[0],y2:P(b)[1],stroke:'#f4c430','stroke-width':1,opacity:0}));
+const sheetPts=S.sheet.map(P); const sheetPoly=el('polygon',{points:sheetPts.join(' '),fill:'rgba(244,196,48,.10)',stroke:'#f4c430','stroke-width':3,'stroke-dasharray':4000,'stroke-dashoffset':4000});
+const sheetLab=el('text',{'text-anchor':'end',x:sheetPts[0][0]-16,y:(sheetPts[0][1]+sheetPts[3][1])/2,fill:'#f4c430','font-size':22,'font-family':'Archivo','font-weight':600,opacity:0}); sheetLab.textContent='A4 sheet, 210 by 297 mm';
+const fL=P(S.pole.frameL), fR=P(S.pole.frameR), pL=P(S.pole.left), pR=P(S.pole.right), sL=P(S.pole.stockLeft), sR=P(S.pole.stockRight);
+const tF=P(S.ticks[0][0]), tE=P(S.ticks[S.ticks.length-1][0]); const tapeStart=[sheetPts[1][0],(sheetPts[1][1]+sheetPts[2][1])/2];
+const tape=el('line',{x1:tapeStart[0],y1:fL[1],x2:tapeStart[0],y2:fL[1],stroke:'#f4c430','stroke-width':30,'stroke-linecap':'butt',opacity:0});
+const ticks={};
+const tk=S.ticks.map(([a,b,n])=>{const A=P(a),B=P(b);const l=el('line',{x1:A[0],y1:A[1],x2:B[0],y2:B[1],stroke:'#2b2108','stroke-width':n!==null?2:1,opacity:0});let tx=null;if(n!==null&&n%10===0){tx=el('text',{x:B[0]+3,y:B[1]+12,'font-size':11,'font-family':'Archivo','font-weight':700,fill:'#2b2108',opacity:0});tx.textContent=n;}return {l,tx,x:A[0]};});
+const pole=el('line',{x1:fL[0],y1:fL[1],x2:fR[0],y2:fR[1],stroke:'#8a5a33','stroke-width':12,'stroke-linecap':'round',opacity:0});
+const cutL=el('line',{stroke:'#d4462b','stroke-width':3,opacity:0}), cutR=el('line',{stroke:'#d4462b','stroke-width':3,opacity:0});
+const offL=el('line',{stroke:'#d4462b','stroke-width':12,opacity:0,'stroke-dasharray':'6 6'}), offR=el('line',{stroke:'#d4462b','stroke-width':12,opacity:0,'stroke-dasharray':'6 6'});
+const finL=el('circle',{r:13,fill:'#5a3a20',opacity:0}), finR=el('circle',{r:13,fill:'#5a3a20',opacity:0});
+const best=S.options[0], W=S.widthMm/10, cutTo=(best.cutToMm||best.stockCm*10)/10, perEnd=best.cutPerEndMm/10;
+const $=id=>document.getElementById(id);
+const img=$('photo'); let t0=null;
+function frame(now){ if(!t0)t0=now; const t=(now-t0)/1000;
+  img.style.opacity=ease(t/0.8);
+  // 1. sheet locks
+  sheetPoly.setAttribute('stroke-dashoffset',4000*(1-ease((t-0.9)/0.9))); sheetLab.setAttribute('opacity',ease((t-1.6)/0.4));
+  // 2. the wall plane spreads from the sheet
+  grid.forEach((g,i)=>g.setAttribute('opacity',0.28*ease((t-2.2-(i%13)*0.04)/0.5)*(1-ease((t-6.2)/0.8))));
+  // 3. tape unspools and snaps to both frame edges
+  const k=back((t-3.2)/1.3); tape.setAttribute('opacity',t>3.1?1:0);
+  const a=lerp(tapeStart,[tF[0],tF[1]-14],k), b=lerp(tapeStart,[tE[0],tE[1]-14],k); const reach=b[0]; tk.forEach(o=>{const on=t>3.1&&o.x<=reach+1&&t<4.9;o.l.setAttribute('opacity',on?1:0);if(o.tx)o.tx.setAttribute('opacity',on?1:0);}); tape.setAttribute('x1',a[0]);tape.setAttribute('y1',a[1]);tape.setAttribute('x2',b[0]);tape.setAttribute('y2',b[1]);
+  $('w').textContent=(W*Math.min(1,Math.max(0,(t-3.2)/1.3))).toFixed(1);
+  if(t>3.1&&!ticks.done){ticks.done=1;}
+  // 4. pole extends past the frame to the stock length, then cut marks
+  const e=ease((t-5.0)/1.0); pole.setAttribute('opacity',t>4.9?1:0); tape.setAttribute('opacity',t>4.9?Math.max(0,1-(t-4.9)*2):t>3.1?1:0);
+  const q1=lerp(fL,sL,e), q2=lerp(fR,sR,e); pole.setAttribute('x1',q1[0]);pole.setAttribute('y1',q1[1]);pole.setAttribute('x2',q2[0]);pole.setAttribute('y2',q2[1]);
+  $('r1').classList.toggle('on',t>5.0);
+  if(t>6.2){ const c=ease((t-6.2)/0.6); [[cutL,pL],[cutR,pR]].forEach(([l,p])=>{l.setAttribute('x1',p[0]);l.setAttribute('x2',p[0]);l.setAttribute('y1',p[1]-30);l.setAttribute('y2',p[1]+30);l.setAttribute('opacity',c)});
+    offL.setAttribute('x1',sL[0]);offL.setAttribute('y1',sL[1]);offL.setAttribute('x2',pL[0]);offL.setAttribute('y2',pL[1]);offL.setAttribute('opacity',c);
+    offR.setAttribute('x1',pR[0]);offR.setAttribute('y1',pR[1]);offR.setAttribute('x2',sR[0]);offR.setAttribute('y2',sR[1]);offR.setAttribute('opacity',c);
+    $('arrow').textContent=`cut to ${cutTo.toFixed(0)} cm`; $('n1').textContent=`Take ${perEnd.toFixed(1)} cm off each end so it runs ${(best.overhangEachSideMm/10).toFixed(1)} cm past the frame each side.`; }
+  // 5. the cut-off ends fall away; finials on
+  if(t>7.6){ const f=ease((t-7.6)/0.6); offL.setAttribute('opacity',1-f); offR.setAttribute('opacity',1-f);
+    pole.setAttribute('x1',pL[0]);pole.setAttribute('y1',pL[1]);pole.setAttribute('x2',pR[0]);pole.setAttribute('y2',pR[1]);
+    const FL=P(S.pole.finL),FR=P(S.pole.finR); finL.setAttribute('cx',FL[0]);finL.setAttribute('cy',FL[1]);finR.setAttribute('cx',FR[0]);finR.setAttribute('cy',FR[1]); finL.setAttribute('opacity',f);finR.setAttribute('opacity',f);}
+  $('r2').classList.toggle('on',t>8.2); if(t>8.2)$('n2').textContent=`Finials add 9 cm each end. Check you have that much clear wall beside the frame.`;
+  if(t<11)requestAnimationFrame(frame);
+}
+img.onload=()=>requestAnimationFrame(frame); if(img.complete)requestAnimationFrame(frame);
+</script></body></html>

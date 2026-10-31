@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Concept C: the elevation</title>
+<style>
+@font-face{font-family:Overpass;src:url(node_modules/@fontsource/overpass/files/overpass-latin-400-normal.woff2)}
+@font-face{font-family:Overpass;font-weight:700;src:url(node_modules/@fontsource/overpass/files/overpass-latin-700-normal.woff2)}
+@font-face{font-family:Overpass;font-weight:300;src:url(node_modules/@fontsource/overpass/files/overpass-latin-300-normal.woff2)}
+:root{--cyan:#123a6b;--line:#e8f0ff;--faint:rgba(232,240,255,.35);--tape:#f2c230}
+html,body{margin:0;width:1920px;height:1080px;background:var(--cyan);overflow:hidden;font-family:Overpass,sans-serif;color:var(--line)}
+#photo{position:absolute;left:-90px;top:0;width:2100px;height:1400px;transform-origin:0 0;transform:scale(.7714)}
+canvas{position:absolute;left:0;top:0;opacity:0}
+svg{position:absolute;inset:0}
+.title{position:absolute;left:72px;bottom:56px;font-size:22px;font-weight:300;letter-spacing:.02em;opacity:0;transition:opacity .6s}
+.title b{font-weight:700}
+</style></head><body>
+<img id="photo" src="scene.jpg">
+<canvas id="cv" width="1920" height="1080"></canvas>
+<svg id="s" width="1920" height="1080"></svg>
+<p class="title" id="ttl">Front elevation, drawn from a 10 second clip. <b>Scale from one sheet of A4.</b></p>
+<script src="scene.js"></script>
+<script>
+const S=window.SCENE,G=S.G,$=id=>document.getElementById(id);
+const ap=(M,x,y)=>{const w=M[6]*x+M[7]*y+M[8];return[(M[0]*x+M[1]*y+M[2])/w,(M[3]*x+M[4]*y+M[5])/w]};
+const L=S.wall.left,R=S.wall.right,T=S.wall.top,B=S.wall.bottom, cx=(L+R)/2, best=S.options[0];
+const poleLen=best.cutToMm||best.stockCm*10, fin=90;
+// wall mm -> screen: fit a span of 2.3 x window width, centred
+const span=Math.max(poleLen+2*fin+500,(R-L)*2.3), k=1300/span, ox=960-cx*k, oy=560-((T+B)/2)*k;
+const W2S=(x,y)=>[ox+x*k,oy+y*k];
+// rectify the photo onto the wall plane (inverse warp, nearest pixel), tinted like a cyanotype
+const img=$('photo');
+function rectify(){const c=$('cv'),g=c.getContext('2d');const tmp=document.createElement('canvas');tmp.width=img.naturalWidth;tmp.height=img.naturalHeight;const tg=tmp.getContext('2d');tg.drawImage(img,0,0);const src=tg.getImageData(0,0,tmp.width,tmp.height).data;const out=g.createImageData(1920,1080);
+ for(let y=0;y<1080;y++)for(let x=0;x<1920;x++){const wx=(x-ox)/k,wy=(y-oy)/k;const [u,v]=ap(G,wx,wy);const i=(y*1920+x)*4;const ui=u|0,vi=v|0;if(ui<0||vi<0||ui>=tmp.width||vi>=tmp.height){out.data[i+3]=0;continue;}const j=(vi*tmp.width+ui)*4;const l=(0.3*src[j]+0.59*src[j+1]+0.11*src[j+2])/255;
+  out.data[i]=18+l*200;out.data[i+1]=58+l*180;out.data[i+2]=107+l*140;out.data[i+3]=255;}
+ g.putImageData(out,0,0);}
+const svg=$('s'),NS='http://www.w3.org/2000/svg';const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const q in a)e.setAttribute(q,a[q]);svg.appendChild(e);return e};
+const txt=(x,y,s,a={})=>{const e=el('text',Object.assign({x,y,fill:'#e8f0ff','font-family':'Overpass','font-size':26,'text-anchor':'middle',opacity:0},a));e.textContent=s;return e};
+// drawing elements (in screen space after rectification)
+const [wl,wt]=W2S(L,T),[wr,wb]=W2S(R,B);
+const frame=el('rect',{x:wl,y:wt,width:wr-wl,height:wb-wt,fill:'none',stroke:'#e8f0ff','stroke-width':3,opacity:0});
+const py=T-100,[pl,pyS]=W2S(cx-poleLen/2,py),[pr]=W2S(cx+poleLen/2,py),[sl]=W2S(cx-best.stockCm*5,py),[sr]=W2S(cx+best.stockCm*5,py);
+const stock=el('line',{x1:sl,y1:pyS,x2:sr,y2:pyS,stroke:'rgba(232,240,255,.4)','stroke-width':14,'stroke-dasharray':'2 8',opacity:0});
+const pole=el('line',{x1:pl,y1:pyS,x2:pr,y2:pyS,stroke:'#f2c230','stroke-width':14,opacity:0});
+const fL=el('circle',{cx:pl-fin*k*0.5,cy:pyS,r:32*k,fill:'none',stroke:'#f2c230','stroke-width':4,opacity:0}),fR=el('circle',{cx:pr+fin*k*0.5,cy:pyS,r:32*k,fill:'none',stroke:'#f2c230','stroke-width':4,opacity:0});
+const dim=(x1,x2,y,label,col='#e8f0ff')=>{const g=[el('line',{x1,y1:y,x2,y2:y,stroke:col,'stroke-width':2,opacity:0}),el('line',{x1,y1:y-14,x2:x1,y2:y+14,stroke:col,'stroke-width':2,opacity:0}),el('line',{x1:x2,y1:y-14,x2:x2,y2:y+14,stroke:col,'stroke-width':2,opacity:0}),txt((x1+x2)/2,y-14,label,{fill:col})];return g};
+const dFrame=dim(wl,wr,wb+70,`${(S.widthMm/10).toFixed(1)} cm frame`);
+const dPole=dim(pl,pr,pyS-60,`${poleLen/10} cm pole`,'#f2c230');
+const dCutL=dim(sl,pl,pyS+50,`${(best.cutPerEndMm/10).toFixed(1)} off`,'#ff8a6b'), dCutR=dim(pr,sr,pyS+50,`${(best.cutPerEndMm/10).toFixed(1)} off`,'#ff8a6b');
+const dOver=dim(pl,wl,wt-30,`${(best.overhangEachSideMm/10).toFixed(1)}`,'#e8f0ff');
+const show=(arr,o)=>arr.forEach(e=>e.setAttribute('opacity',o));
+let t0=null;
+function f(now){if(!t0)t0=now;const t=(now-t0)/1000;const e=x=>x<0?0:x>1?1:1-Math.pow(1-x,3);
+ img.style.opacity=1-e((t-1.0)/1.4); $('cv').style.opacity=e((t-1.0)/1.4);
+ frame.setAttribute('opacity',e((t-2.6)/0.5)); show(dFrame,e((t-3.1)/0.5));
+ stock.setAttribute('opacity',e((t-4.2)/0.5)*(1-e((t-7.2)/0.6))); show(dPole,e((t-5.2)/0.5)); pole.setAttribute('opacity',e((t-5.0)/0.5));
+ show(dCutL,e((t-6.1)/0.5)*(1-e((t-7.6)/0.5)));show(dCutR,e((t-6.1)/0.5)*(1-e((t-7.6)/0.5)));
+ [fL,fR].forEach(c=>c.setAttribute('opacity',e((t-7.6)/0.5))); show(dOver,e((t-8.0)/0.5));
+ $('ttl').style.opacity=t>8.4?1:0; if(t<11)requestAnimationFrame(f)}
+const go=()=>{rectify();requestAnimationFrame(f)}; img.complete?go():img.onload=go;
+</script></body></html>

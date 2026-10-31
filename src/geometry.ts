@@ -235,20 +235,31 @@ export function wallHomography(corners: Pt[]): { H: Mat3; portrait: boolean } {
  * Levenberg-Marquardt with a numeric Jacobian. Returns the window size in mm and the final RMS in px.
  */
 export function jointFit(sheetImg: Pt[], winImg: Pt[], portrait = true) {
+  // Wall frame is aligned to the WINDOW (its top edge is horizontal), so a crooked sheet doesn't tilt the answer.
+  // The sheet sits at the origin, rotated by theta; theta is solved along with everything else.
   const sW = portrait ? A4.w : A4.h, sH = portrait ? A4.h : A4.w;
   const sheetWall: Pt[] = [{ x: 0, y: 0 }, { x: sW, y: 0 }, { x: sW, y: sH }, { x: 0, y: sH }];
   const S = orderCorners(sheetImg), Wn = orderCorners(winImg);
-  const H0 = homography(S, sheetWall); // image -> wall
-  const G0 = invert(H0).map((v, _i, a) => v / a[8]);
-  const wc = Wn.map((p) => apply(H0, p));
+  const H0 = homography(S, sheetWall); // image -> sheet frame
+  const wc0 = Wn.map((p) => apply(H0, p));
+  const alpha = Math.atan2(wc0[1].y - wc0[0].y, wc0[1].x - wc0[0].x); // window top edge angle in the sheet frame
+  const th0 = -alpha;
+  const rot = (t: number, P: Pt): Pt => ({ x: Math.cos(t) * P.x - Math.sin(t) * P.y, y: Math.sin(t) * P.x + Math.cos(t) * P.y });
+  // G0: wall(window-aligned) -> image = (image <- sheet frame) o R(-th0)
+  const Gs = invert(H0);
+  const c = Math.cos(-th0), s_ = Math.sin(-th0);
+  const R = [c, -s_, 0, s_, c, 0, 0, 0, 1];
+  const mul = (A: number[], B: number[]) => [0, 1, 2].flatMap((i) => [0, 1, 2].map((j) => A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j]));
+  const G0 = mul(Gs, R).map((v, _i, a) => v / a[8]);
+  const wc = wc0.map((P) => rot(th0, P));
   const r0 = [(wc[0].x + wc[3].x) / 2, (wc[0].y + wc[1].y) / 2, (wc[1].x + wc[2].x) / 2 - (wc[0].x + wc[3].x) / 2, (wc[2].y + wc[3].y) / 2 - (wc[0].y + wc[1].y) / 2];
-  let p = [...G0.slice(0, 8), ...r0];
+  let p = [...G0.slice(0, 8), ...r0, th0];
   const resid = (q: number[]) => {
     const G = [...q.slice(0, 8), 1];
-    const [x0, y0, w, h] = q.slice(8);
+    const [x0, y0, w, h, th] = q.slice(8);
     const rect: Pt[] = [{ x: x0, y: y0 }, { x: x0 + w, y: y0 }, { x: x0 + w, y: y0 + h }, { x: x0, y: y0 + h }];
     const r: number[] = [];
-    sheetWall.forEach((P, i) => { const u = apply(G, P); r.push(u.x - S[i].x, u.y - S[i].y); });
+    sheetWall.forEach((P, i) => { const u = apply(G, rot(th, P)); r.push(u.x - S[i].x, u.y - S[i].y); });
     rect.forEach((P, i) => { const u = apply(G, P); r.push(u.x - Wn[i].x, u.y - Wn[i].y); });
     return r;
   };
@@ -277,8 +288,8 @@ export function jointFit(sheetImg: Pt[], winImg: Pt[], portrait = true) {
     }
     if (!improved) break;
   }
-  const [, , w, h] = p.slice(8);
-  return { widthMm: Math.abs(w), heightMm: Math.abs(h), rmsPx: Math.sqrt(cost / cur.length), G: [...p.slice(0, 8), 1] as Mat3 };
+  const [x0, y0, w, h, th] = p.slice(8);
+  return { widthMm: Math.abs(w), heightMm: Math.abs(h), rmsPx: Math.sqrt(cost / cur.length), G: [...p.slice(0, 8), 1] as Mat3, window: { x0, y0, w, h }, sheetTiltDeg: (th * 180) / Math.PI };
 }
 
 /** Horizontal wall distance in mm between two image points. */

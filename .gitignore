@@ -7,3 +7,6 @@ answer-key/
 fixtures/private/
 .vercel/
 fixtures/*.jpg
+design/node_modules/
+design/out/
+design/scene.jpg

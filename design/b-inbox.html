@@ -1,0 +1,69 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Concept B: the maker's inbox</title>
+<style>
+@font-face{font-family:Bricolage;src:url(node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wdth-normal.woff2) format("woff2");font-weight:200 800;font-stretch:75% 100%}
+:root{--paper:#f3f5f1;--card:#ffffff;--ink:#17301f;--moss:#2f5d3f;--line:#d9ded6;--tape:#f2c230;--soft:#6d7a70}
+html,body{margin:0;width:1920px;height:1080px;background:var(--paper);font-family:Bricolage,sans-serif;color:var(--ink);overflow:hidden}
+aside{position:absolute;left:0;top:0;bottom:0;width:440px;border-right:1px solid var(--line);padding:56px 0 0}
+aside h1{font-size:30px;font-weight:700;margin:0 40px 28px}
+.conv{padding:22px 40px;border-top:1px solid var(--line);font-size:22px;line-height:1.3;color:var(--soft)}
+.conv b{display:block;color:var(--ink);font-weight:650;margin-bottom:4px}
+.conv.new{background:#fff;box-shadow:inset 6px 0 0 var(--tape);transform:translateX(-440px);transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.conv.new.in{transform:none}
+main{position:absolute;left:440px;top:0;right:0;bottom:0;padding:56px 72px}
+.who{font-size:26px;font-weight:650;margin:0 0 26px}
+.msg{display:flex;gap:28px;align-items:flex-start;opacity:0;transition:opacity .5s}
+.msg.on{opacity:1}
+.clip{position:relative;width:560px;height:373px;border-radius:18px;overflow:hidden;flex:none;background:#000}
+.clip img{width:100%;height:100%;object-fit:cover}
+.clip svg{position:absolute;inset:0}
+.quote{font-size:26px;line-height:1.4;max-width:560px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 26px}
+.steps{list-style:none;padding:0;margin:20px 0 0;font-size:22px}
+.steps li{opacity:0;transform:translateY(6px);transition:all .4s;margin:10px 0;color:var(--moss)}
+.steps li.on{opacity:1;transform:none}
+.steps li::before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--moss);margin-right:12px;vertical-align:1px}
+.draft{position:absolute;left:72px;right:72px;bottom:56px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px 34px;opacity:0;transition:opacity .5s}
+.draft.on{opacity:1}
+.draft .lab{font-size:20px;color:var(--soft);margin-bottom:10px}
+.draft p{font-size:23px;line-height:1.45;margin:0;min-height:170px;white-space:pre-wrap}
+.bar{display:flex;align-items:center;gap:18px;margin-top:18px}
+.btn{font:inherit;font-size:22px;font-weight:650;border:0;border-radius:999px;padding:16px 30px;background:var(--ink);color:#fff}
+.btn.sent{background:var(--moss)}
+.num{font-weight:750;font-stretch:80%;font-size:58px;line-height:1}
+.facts{display:flex;gap:44px;margin-top:22px;opacity:0;transition:opacity .5s}.facts.on{opacity:1}
+.facts small{display:block;font-size:18px;color:var(--soft);margin-bottom:6px}
+</style></head><body>
+<aside><h1>Messages</h1>
+ <div class="conv new" id="c0"><b>New clip from a buyer</b>Spare room window, eyelet curtains</div>
+ <div class="conv"><b>Rings question</b>Do you do rings to match?</div>
+ <div class="conv"><b>Holdbacks</b>Are these sold as a pair?</div>
+ <div class="conv"><b>Delivery question</b>When will it arrive?</div>
+</aside>
+<main>
+ <p class="who" id="who" style="opacity:0">A buyer sent a 10 second clip</p>
+ <div class="msg" id="m">
+  <div class="clip"><img id="ph" src="scene.jpg"><svg id="s" viewBox="0 0 1920 1280" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div><div class="quote">"Hi, it's for a little window in the spare room, eyelet curtains. I'd like them to clear the glass."</div>
+   <ul class="steps"><li id="s1">Found the A4 sheet on the wall</li><li id="s2">Found the window frame</li><li id="s3">8 frames agree to within 1 mm</li></ul>
+   <div class="facts" id="facts"><div><small>Frame width</small><span class="num" id="fw"></span></div><div><small>Pole</small><span class="num" id="pl"></span></div><div><small>Cut each end</small><span class="num" id="ce"></span></div></div>
+  </div>
+ </div>
+ <div class="draft" id="d"><div class="lab">Draft reply, in your words</div><p id="dt"></p>
+  <div class="bar"><button class="btn" id="b">Approve and send</button><span id="st" style="font-size:20px;color:var(--soft)"></span></div></div>
+</main>
+<script src="scene.js"></script>
+<script>
+const S=window.SCENE,$=id=>document.getElementById(id),svg=$('s'),NS='http://www.w3.org/2000/svg';
+const poly=(pts,c)=>{const e=document.createElementNS(NS,'polygon');e.setAttribute('points',pts.map(p=>p.x+','+p.y).join(' '));e.setAttribute('fill','none');e.setAttribute('stroke',c);e.setAttribute('stroke-width',6);e.style.opacity=0;e.style.transition='opacity .4s';svg.appendChild(e);return e};
+const sh=poly(S.sheet,'#f2c230'), wi=poly(S.window,'#f2c230');
+const best=S.options[0], text=S.draft.reply; let t0=null;
+function f(now){if(!t0)t0=now;const t=(now-t0)/1000;
+ $('c0').classList.toggle('in',t>0.3); $('who').style.opacity=t>1?1:0; $('m').classList.toggle('on',t>1.1);
+ if(t>2.0){$('s1').classList.add('on');sh.style.opacity=1} if(t>2.6){$('s2').classList.add('on');wi.style.opacity=1} if(t>3.2)$('s3').classList.add('on');
+ $('facts').classList.toggle('on',t>3.6); const k=Math.min(1,Math.max(0,(t-3.6)/0.8));
+ $('fw').textContent=(S.widthMm/10*k).toFixed(1)+' cm'; $('pl').textContent=best.stockCm+' cm'; $('ce').textContent=(best.cutPerEndMm/10).toFixed(1)+' cm';
+ $('d').classList.toggle('on',t>4.4); const n=Math.floor(Math.max(0,(t-4.6))*140); $('dt').textContent=text.slice(0,n);
+ if(t>8.6){$('b').textContent='Sent';$('b').classList.add('sent');$('st').textContent='The buyer has the size and the cut. You spent one click.'}
+ if(t<11)requestAnimationFrame(f)}
+const go=()=>requestAnimationFrame(f); const im=$('ph'); im.complete?go():im.onload=go;
+</script></body></html>
