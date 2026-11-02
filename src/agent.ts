@@ -19,7 +19,7 @@ centre bracket under the join; finials add length at each end; rings are not sol
 holdbacks are priced individually; returns aren't accepted on cut poles, so sizing must be right first time.`;
 
 export async function draftReply(api: OpenAI, input: {
-  transcript: string; buyerMessage?: string; frameWidthMm: number; spreadMm: number; options: Option[]; diameterMm: number; model?: string;
+  transcript: string; buyerMessage?: string; frameWidthMm: number; spreadMm: number; options: Option[]; diameterMm: number; model?: string; handSpanCm?: [number, number]; baseURL?: string;
 }): Promise<Draft> {
   const facts = {
     measured_frame_width_cm: +(input.frameWidthMm / 10).toFixed(1),
@@ -31,6 +31,7 @@ export async function draftReply(api: OpenAI, input: {
     diameter_mm: input.diameterMm,
     finial_adds_each_end_cm: (catalogue.finialMm[input.diameterMm] ?? 90) / 10,
     listing: catalogue.listing,
+    ...(input.handSpanCm ? { buyer_pointed_past_frame_cm: { left: input.handSpanCm[0], right: input.handSpanCm[1] } } : {}),
   };
   const res: any = await api.responses.create({
     model: input.model ?? "muse-spark-1.3",
@@ -58,6 +59,7 @@ one line on the alternative if there is one, and one line on finial clearance. U
 export function checkNumbers(reply: string, facts: any) {
   const allowed = new Set<string>();
   const add = (v: number | null | undefined) => { if (v === null || v === undefined) return; for (const x of [v, v * 10, v / 10]) { allowed.add(String(+x.toFixed(1))); allowed.add(String(Math.round(x))); } };
+  if (facts.buyer_pointed_past_frame_cm) { add(facts.buyer_pointed_past_frame_cm.left); add(facts.buyer_pointed_past_frame_cm.right); }
   add(facts.measured_frame_width_cm); add(facts.measurement_spread_mm); add(facts.diameter_mm); add(facts.finial_adds_each_end_cm);
   for (const o of facts.options) { add(o.stock_length_cm); add(o.cut_to_cm); add(o.cut_each_end_cm); add(o.past_frame_each_side_cm); }
   for (const n of [1, 2, 3, 4, 10, 15, 20, 890563497]) allowed.add(String(n)); // counts, the house overhang band, the listing id

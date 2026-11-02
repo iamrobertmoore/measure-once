@@ -11,6 +11,24 @@ export type SamObject = {
   crop: { x0: number; y0: number; w: number; h: number; data: Uint8Array };
 };
 
+// Keep concurrent SAM calls modest and retry rate limits with backoff (credits accounts have tighter limits).
+let active = 0; const queue: (() => void)[] = [];
+const MAX = Number(process.env.SAM_CONCURRENCY || 6);
+async function limited<T>(fn: () => Promise<T>): Promise<T> {
+  if (active >= MAX) await new Promise<void>((r) => queue.push(r));
+  active++;
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try { return await fn(); }
+      catch (e: any) {
+        const rate = e?.status === 429 || /429|rate limit/i.test(String(e?.message));
+        if (!rate || attempt >= 6) throw e;
+        await new Promise((r) => setTimeout(r, 800 * 2 ** attempt + Math.random() * 400));
+      }
+    }
+  } finally { active--; queue.shift()?.(); }
+}
+
 export function client(apiKey: string) {
   return new OpenAI({ baseURL: "https://api.meta.ai/v1", apiKey, maxRetries: 3, timeout: 120_000 });
 }
@@ -42,6 +60,9 @@ function toObjects(records: readonly any[]): SamObject[] {
 }
 
 export async function segmentImage(api: OpenAI, imageDataUrl: string, phrase: string): Promise<SamObject[]> {
+  return limited(() => segmentImageOnce(api, imageDataUrl, phrase));
+}
+async function segmentImageOnce(api: OpenAI, imageDataUrl: string, phrase: string): Promise<SamObject[]> {
   const stream: any = await api.responses.create({
     model: "sam-3.1", stream: true,
     metadata: { mask_encoding: "lossless", include_confidence: "true" },

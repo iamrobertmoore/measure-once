@@ -171,7 +171,10 @@ export function quadCorners(mask: Uint8Array, W: number, H: number): Pt[] {
  * side, find the sub-pixel peak of the gradient magnitude (parabola through the max), refit the side line,
  * intersect neighbours. `gray` is row-major luminance, W x H, in the same pixel frame as `quad`.
  */
-export function snapToImageEdges(quad: Pt[], gray: Float32Array, W: number, H: number, reach = 4, samples = 40): Pt[] {
+export function edgeSamples(quad: Pt[], gray: Float32Array, W: number, H: number, reach = 4, samples = 40, minContrast = 0.25): Pt[][] {
+  // For each side, sample short profiles across it. The side's normal points INTO the quad (clockwise order, y down).
+  // Edge position = where intensity crosses halfway between the outside level and the inside level (a step edge's
+  // true position, unbiased by blur), searching outward from the mask's edge so a nearby second edge isn't taken.
   const q = orderCorners(quad);
   const at = (x: number, y: number) => { // bilinear
     const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
@@ -179,7 +182,8 @@ export function snapToImageEdges(quad: Pt[], gray: Float32Array, W: number, H: n
     const i = y0 * W + x0;
     return gray[i] * (1 - fx) * (1 - fy) + gray[i + 1] * fx * (1 - fy) + gray[i + W] * (1 - fx) * fy + gray[i + W + 1] * fx * fy;
   };
-  const lines: Line[] = [];
+  const out: Pt[][] = [];
+  const band = 4; // px of plain surface sampled for each level
   for (let s = 0; s < 4; s++) {
     const a = q[s], b = q[(s + 1) % 4];
     const L = Math.hypot(b.x - a.x, b.y - a.y), tx = (b.x - a.x) / L, ty = (b.y - a.y) / L, nx = -ty, ny = tx;
@@ -187,20 +191,51 @@ export function snapToImageEdges(quad: Pt[], gray: Float32Array, W: number, H: n
     for (let k = 0; k < samples; k++) {
       const t = 0.15 + (0.7 * k) / (samples - 1);
       const cx = a.x + (b.x - a.x) * t, cy = a.y + (b.y - a.y) * t;
-      const step = 0.25, prof: number[] = [];
-      for (let o = -reach; o <= reach + 1e-9; o += step) prof.push(at(cx + nx * o, cy + ny * o));
+      const step = 0.25, os: number[] = [], prof: number[] = [];
+      for (let o = -reach - band; o <= reach + band + 1e-9; o += step) { os.push(o); prof.push(at(cx + nx * o, cy + ny * o)); }
       if (prof.some(Number.isNaN)) continue;
-      const g = prof.slice(1).map((v, i) => Math.abs(v - prof[i]));
-      let m = 0; g.forEach((v, i) => { if (v > g[m]) m = i; });
-      if (m === 0 || m === g.length - 1 || g[m] < 1e-3) continue;
-      const den = g[m - 1] - 2 * g[m] + g[m + 1];
-      const sub = den !== 0 ? (0.5 * (g[m - 1] - g[m + 1])) / den : 0;
-      const o = -reach + (m + 0.5 + sub) * step;
-      pts.push({ x: cx + nx * o, y: cy + ny * o });
+      const mean = (lo: number, hi: number) => { let s2 = 0, n = 0; os.forEach((o, i) => { if (o >= lo && o <= hi) { s2 += prof[i]; n++; } }); return s2 / n; };
+      const outside = mean(-reach - band, -reach), inside = mean(reach, reach + band);
+      const contrast = inside - outside;
+      if (Math.abs(contrast) < minContrast) continue;
+      const mid = (inside + outside) / 2;
+      // crossings of the mid level within [-reach, reach]; take the one nearest the mask edge (o = 0)
+      let best: number | null = null;
+      for (let i = 1; i < os.length; i++) {
+        if (os[i] < -reach || os[i - 1] > reach) continue;
+        const d0 = prof[i - 1] - mid, d1 = prof[i] - mid;
+        if (d0 === 0 || d0 * d1 < 0) {
+          const o = os[i - 1] + (d0 / (d0 - d1)) * (os[i] - os[i - 1]);
+          if (best === null || Math.abs(o) < Math.abs(best)) best = o;
+        }
+      }
+      if (best === null) continue;
+      pts.push({ x: cx + nx * best, y: cy + ny * best });
     }
-    if (pts.length < 6) return q;
-    lines.push(fitLine(pts));
+    out.push(trimToLine(pts));
   }
+  return out;
+}
+
+/** Fit a line, drop points more than `tol` px off it (clutter, shadows), refit. */
+export function trimToLine(pts: Pt[], tol = 1.5): Pt[] {
+  if (pts.length < 6) return pts;
+  let keep = pts;
+  for (let it = 0; it < 2; it++) {
+    const l = fitLine(keep);
+    const d = keep.map((p) => Math.abs(l.a * p.x + l.b * p.y + l.c));
+    const sorted = [...d].sort((a, b) => a - b), med = sorted[Math.floor(sorted.length / 2)];
+    const next = keep.filter((_, i) => d[i] <= Math.max(tol, 3 * med));
+    if (next.length < 6 || next.length === keep.length) break;
+    keep = next;
+  }
+  return keep;
+}
+
+export function snapToImageEdges(quad: Pt[], gray: Float32Array, W: number, H: number, reach = 4, samples = 40): Pt[] {
+  const sides = edgeSamples(quad, gray, W, H, reach, samples);
+  if (sides.some((p) => p.length < 6)) return orderCorners(quad);
+  const lines = sides.map(fitLine);
   return [0, 1, 2, 3].map((i) => intersect(lines[(i + 3) % 4], lines[i]));
 }
 
@@ -303,4 +338,141 @@ export function summarise(v: number[]) {
   const s = [...v].sort((a, b) => a - b);
   const q = (p: number) => s[Math.min(s.length - 1, Math.max(0, Math.round(p * (s.length - 1))))];
   return { n: s.length, median: q(0.5), p25: q(0.25), p75: q(0.75), iqr: q(0.75) - q(0.25) };
+}
+
+/**
+ * Joint fit from edge samples. The sheet gives four corners (known A4 shape, any tilt); the window gives whichever
+ * of its sides are visible as point samples [top, right, bottom, left] (an empty array = side not visible,
+ * e.g. hidden by a sill or out of shot). Window-aligned wall frame, as in jointFit. Residuals in image pixels:
+ * sheet corners, and each window sample's distance to its projected rectangle side.
+ */
+export function jointFitEdges(sheetImg: Pt[], winSides: Pt[][], winRough: Pt[], portrait = true) {
+  const seed = jointFit(sheetImg, winRough, portrait); // initial G, rect and tilt from rough corners
+  const sW = portrait ? A4.w : A4.h, sH = portrait ? A4.h : A4.w;
+  const sheetWall: Pt[] = [{ x: 0, y: 0 }, { x: sW, y: 0 }, { x: sW, y: sH }, { x: 0, y: sH }];
+  const S = orderCorners(sheetImg);
+  const rot = (t: number, P: Pt): Pt => ({ x: Math.cos(t) * P.x - Math.sin(t) * P.y, y: Math.sin(t) * P.x + Math.cos(t) * P.y });
+  const hasBottom = winSides[2]?.length >= 6, hasTop = winSides[0]?.length >= 6;
+  const wts = winSides.map((s) => (s.length ? Math.sqrt(4 / s.length) : 0)); // each side weighs like ~4 residuals
+  let p = [...seed.G.slice(0, 8), seed.window.x0, seed.window.y0, seed.window.w, seed.window.h, (seed.sheetTiltDeg * Math.PI) / 180];
+  const resid = (q: number[]) => {
+    const G = [...q.slice(0, 8), 1];
+    const [x0, y0, w, h, th] = q.slice(8);
+    const r: number[] = [];
+    sheetWall.forEach((P, i) => { const u = apply(G, rot(th, P)); r.push(u.x - S[i].x, u.y - S[i].y); });
+    const rect: Pt[] = [{ x: x0, y: y0 }, { x: x0 + w, y: y0 }, { x: x0 + w, y: y0 + h }, { x: x0, y: y0 + h }].map((P) => apply(G, P));
+    for (let s = 0; s < 4; s++) {
+      if (!winSides[s]?.length || (s === 2 && !hasBottom) || (s === 0 && !hasTop)) continue;
+      const a = rect[s], b = rect[(s + 1) % 4];
+      const L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      for (const P of winSides[s]) r.push((((P.x - a.x) * (b.y - a.y) - (P.y - a.y) * (b.x - a.x)) / L) * wts[s]);
+    }
+    return r;
+  };
+  const sq = (r: number[]) => r.reduce((t, v) => t + v * v, 0);
+  // When the bottom isn't visible, height is unconstrained: hold it fixed at the seed value.
+  const free = p.map((_, i) => !((i === 11 && !hasBottom) || (i === 9 && !hasTop)));
+  let lambda = 1e-3, cur = resid(p), cost = sq(cur);
+  for (let it = 0; it < 200; it++) {
+    const idx = free.map((f, i) => (f ? i : -1)).filter((i) => i >= 0);
+    const n = idx.length, m = cur.length;
+    const J: number[][] = Array.from({ length: m }, () => new Array(n).fill(0));
+    idx.forEach((j, c) => { const h = Math.max(1e-8, Math.abs(p[j]) * 1e-6); const q = [...p]; q[j] += h; const rj = resid(q); for (let i = 0; i < m; i++) J[i][c] = (rj[i] - cur[i]) / h; });
+    const JtJ = Array.from({ length: n }, (_, a) => Array.from({ length: n }, (_, b) => J.reduce((s, row) => s + row[a] * row[b], 0)));
+    const Jtr = Array.from({ length: n }, (_, a) => J.reduce((s, row, i) => s + row[a] * cur[i], 0));
+    let improved = false;
+    for (let tries = 0; tries < 10 && !improved; tries++) {
+      const A = JtJ.map((row, a) => row.map((v, b) => (a === b ? v * (1 + lambda) + 1e-12 : v)));
+      let d: number[];
+      try { d = solve(A, Jtr.map((v) => -v)); } catch { lambda *= 10; continue; }
+      const q = [...p]; idx.forEach((j, c) => { q[j] += d[c]; });
+      const rq = resid(q), cq = sq(rq);
+      if (cq < cost) { p = q; cur = rq; const rel = (cost - cq) / Math.max(cost, 1e-12); cost = cq; lambda = Math.max(lambda / 10, 1e-12); improved = true; if (rel < 1e-12) it = 1e9; }
+      else lambda *= 10;
+    }
+    if (!improved) break;
+  }
+  const [x0, y0, w, h, th] = p.slice(8);
+  return { widthMm: Math.abs(w), heightMm: hasBottom ? Math.abs(h) : null, rmsPx: Math.sqrt(cost / cur.length), G: [...p.slice(0, 8), 1] as Mat3, window: { x0, y0, w, h }, sheetTiltDeg: (th * 180) / Math.PI, sidesUsed: winSides.map((s, i) => ((i === 2 && !hasBottom) || (i === 0 && !hasTop) ? 0 : s.length)) };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Pose model: a pinhole camera with a known focal length looking at a flat wall. Six pose numbers instead of the
+// eight of a free homography, so a small sheet can't invent perspective: the big window sets the wall's angle,
+// the sheet sets the scale. (Phone cameras are close to distortion-free after their own correction.)
+
+function rodrigues(r: number[]): number[] {
+  const th = Math.hypot(r[0], r[1], r[2]);
+  if (th < 1e-12) return [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  const k = r.map((v) => v / th), c = Math.cos(th), s = Math.sin(th), v = 1 - c;
+  const [x, y, z] = k;
+  return [c + x * x * v, x * y * v - z * s, x * z * v + y * s, y * x * v + z * s, c + y * y * v, y * z * v - x * s, z * x * v - y * s, z * y * v + x * s, c + z * z * v];
+}
+
+/** Default focal length for a phone's main camera in landscape video (about a 64 degree horizontal view). */
+export const phoneFocal = (W: number) => 0.8 * W;
+
+export function jointFitPose(sheetImg: Pt[], winSides: Pt[][], winRough: Pt[], W: number, H: number, f = phoneFocal(W), portrait = true) {
+  const seed = jointFitEdges(sheetImg, winSides, winRough, portrait);
+  const sW = portrait ? A4.w : A4.h, sH = portrait ? A4.h : A4.w;
+  const sheetWall: Pt[] = [{ x: 0, y: 0 }, { x: sW, y: 0 }, { x: sW, y: sH }, { x: 0, y: sH }];
+  const S = orderCorners(sheetImg);
+  const cx = W / 2, cy = H / 2;
+  const rot2 = (t: number, P: Pt): Pt => ({ x: Math.cos(t) * P.x - Math.sin(t) * P.y, y: Math.sin(t) * P.x + Math.cos(t) * P.y });
+  const hasBottom = winSides[2]?.length >= 6;
+  const wts = winSides.map((s) => (s.length ? Math.sqrt(4 / s.length) : 0));
+  const project = (q: number[], P: Pt): Pt => {
+    const R = rodrigues(q.slice(0, 3));
+    const X = R[0] * P.x + R[1] * P.y + q[3], Y = R[3] * P.x + R[4] * P.y + q[4], Z = R[6] * P.x + R[7] * P.y + q[5];
+    return { x: cx + (f * X) / Z, y: cy + (f * Y) / Z };
+  };
+  // Initial pose: facing the wall, at the distance the seed's scale implies, centred on the seed's wall point.
+  const Hs = invert(seed.G);
+  const c0 = apply(Hs, { x: cx, y: cy });
+  const pxPerMm = Math.hypot(apply(seed.G, { x: c0.x + 100, y: c0.y }).x - cx, apply(seed.G, { x: c0.x + 100, y: c0.y }).y - cy) / 100;
+  const Z0 = f / pxPerMm;
+  let p = [0, 0, 0, -c0.x, -c0.y, Z0, seed.window.x0, seed.window.y0, seed.window.w, seed.window.h, (seed.sheetTiltDeg * Math.PI) / 180];
+  const resid = (q: number[]) => {
+    const [x0, y0, w, h, th] = q.slice(6);
+    const r: number[] = [];
+    sheetWall.forEach((P, i) => { const u = project(q, rot2(th, P)); r.push(u.x - S[i].x, u.y - S[i].y); });
+    const rect = [{ x: x0, y: y0 }, { x: x0 + w, y: y0 }, { x: x0 + w, y: y0 + h }, { x: x0, y: y0 + h }].map((P) => project(q, P));
+    for (let s = 0; s < 4; s++) {
+      if (!winSides[s]?.length || (s === 2 && !hasBottom)) continue;
+      const a = rect[s], b = rect[(s + 1) % 4], L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      for (const P of winSides[s]) r.push((((P.x - a.x) * (b.y - a.y) - (P.y - a.y) * (b.x - a.x)) / L) * wts[s]);
+    }
+    return r;
+  };
+  const sq = (r: number[]) => r.reduce((t2, v) => t2 + v * v, 0);
+  const free = p.map((_, i) => !(i === 9 && !hasBottom));
+  let lambda = 1e-3, cur = resid(p), cost = sq(cur);
+  for (let it = 0; it < 300; it++) {
+    const idx = free.map((fr, i) => (fr ? i : -1)).filter((i) => i >= 0);
+    const n = idx.length, m = cur.length;
+    const J: number[][] = Array.from({ length: m }, () => new Array(n).fill(0));
+    idx.forEach((j, c) => { const h = Math.max(1e-7, Math.abs(p[j]) * 1e-6); const q = [...p]; q[j] += h; const rj = resid(q); for (let i = 0; i < m; i++) J[i][c] = (rj[i] - cur[i]) / h; });
+    const JtJ = Array.from({ length: n }, (_, a) => Array.from({ length: n }, (_, b) => J.reduce((s, row) => s + row[a] * row[b], 0)));
+    const Jtr = Array.from({ length: n }, (_, a) => J.reduce((s, row, i) => s + row[a] * cur[i], 0));
+    let improved = false;
+    for (let tries = 0; tries < 10 && !improved; tries++) {
+      const A = JtJ.map((row, a) => row.map((v, b) => (a === b ? v * (1 + lambda) + 1e-9 : v)));
+      let d: number[];
+      try { d = solve(A, Jtr.map((v) => -v)); } catch { lambda *= 10; continue; }
+      const q = [...p]; idx.forEach((j, c) => { q[j] += d[c]; });
+      const rq = resid(q), cq = sq(rq);
+      if (cq < cost) { p = q; cur = rq; const rel = (cost - cq) / Math.max(cost, 1e-12); cost = cq; lambda = Math.max(lambda / 10, 1e-12); improved = true; if (rel < 1e-12) it = 1e9; }
+      else lambda *= 10;
+    }
+    if (!improved) break;
+  }
+  const [x0, y0, w, h, th] = p.slice(6);
+  // Express the result as a homography too (wall mm -> image px), for drawing and for the hands.
+  const R = rodrigues(p.slice(0, 3));
+  const G = [f * R[0] + cx * R[6], f * R[1] + cx * R[7], f * p[3] + cx * p[5], f * R[3] + cy * R[6], f * R[4] + cy * R[7], f * p[4] + cy * p[5], R[6], R[7], p[5]];
+  const Gn = G.map((v) => v / G[8]);
+  // Sheet residual alone: how well a flat A4 explains the sheet corners under this pose (a curl or a non-A4 sheet shows here).
+  let sr = 0; sheetWall.forEach((P, i) => { const u = project(p, rot2(th, P)); sr += (u.x - S[i].x) ** 2 + (u.y - S[i].y) ** 2; });
+  const tiltDeg = (Math.acos(Math.min(1, Math.abs(R[8]))) * 180) / Math.PI; // angle between camera axis and wall normal
+  return { widthMm: Math.abs(w), heightMm: hasBottom ? Math.abs(h) : null, rmsPx: Math.sqrt(cost / cur.length), sheetRmsPx: Math.sqrt(sr / 4), G: Gn as Mat3, window: { x0, y0, w, h }, sheetTiltDeg: (th * 180) / Math.PI, viewAngleDeg: tiltDeg, distanceMm: p[5], focalPx: f, sidesUsed: winSides.map((s, i) => (i === 2 && !hasBottom ? 0 : s.length)) };
 }

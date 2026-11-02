@@ -8,8 +8,8 @@ const api = client(readFileSync(new URL("../.secrets/meta_api_key", import.meta.
 const jpeg = readFileSync(file);
 const t0 = Date.now();
 const r = await measureStill(api, jpeg);
-console.log(JSON.stringify({ ms: Date.now() - t0, ...r, sheet: undefined, window: undefined }, null, 1));
+console.log(JSON.stringify({ ms: Date.now() - t0, ...r, sheet: undefined, window: undefined, G: undefined }));
 const quads = [r.sheet && { pts: r.sheet, color: "#3ddc84" }, r.window && { pts: r.window, color: "#ffb300" }].filter(Boolean) as any;
-const label = r.ok ? `window ${Math.round(r.widthMm)} x ${Math.round(r.heightMm)} mm` : `abstain: ${r.reason}`;
+const label = r.ok ? `frame width ${Math.round(r.widthMm)} mm`  : `abstain: ${r.reason}`;
 writeFileSync(out, await overlay(jpeg, quads, label));
 console.log("overlay", out);

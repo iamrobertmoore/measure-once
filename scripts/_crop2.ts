@@ -1,0 +1,10 @@
+import sharp from "sharp"; import { readFileSync } from "node:fs";
+import { client } from "../src/sam.ts"; import { measureStill } from "../src/measure.ts";
+const api = client(readFileSync(".secrets/meta_api_key","utf8").trim());
+const img = readFileSync(process.argv[2]); const r: any = await measureStill(api, img);
+console.log(r.ok, r.widthMm, r.sheet?.map((p:any)=>[p.x.toFixed(1),p.y.toFixed(1)]));
+const xs=r.sheet.map((p:any)=>p.x), ys=r.sheet.map((p:any)=>p.y);
+const x0=Math.floor(Math.min(...xs))-30,y0=Math.floor(Math.min(...ys))-30,w=Math.ceil(Math.max(...xs)-x0)+30,h=Math.ceil(Math.max(...ys)-y0)+30,s=4;
+const pts=r.sheet.map((p:any)=>`${((p.x-x0)*s).toFixed(1)},${((p.y-y0)*s).toFixed(1)}`).join(" ");
+const svg=`<svg width="${w*s}" height="${h*s}" xmlns="http://www.w3.org/2000/svg"><polygon points="${pts}" fill="none" stroke="#ff1744" stroke-width="1.5"/></svg>`;
+await sharp(img).extract({left:x0,top:y0,width:w,height:h}).resize(w*s,h*s,{kernel:"nearest"}).composite([{input:Buffer.from(svg)}]).png().toFile(process.argv[3]);
