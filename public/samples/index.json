@@ -1,0 +1,28 @@
+{
+  "samples": [
+    {
+      "id": "living-room",
+      "title": "Living room, shutters",
+      "thumb": "f4.jpg",
+      "pole": "pole.jpg"
+    },
+    {
+      "id": "bathroom",
+      "title": "Bathroom, wooden surround",
+      "thumb": "f30.jpg",
+      "pole": null
+    },
+    {
+      "id": "cloakroom",
+      "title": "Small window in a recess",
+      "thumb": "f41.jpg",
+      "pole": null
+    },
+    {
+      "id": "kitchen-curled",
+      "title": "Kitchen, sheet curled",
+      "thumb": "f1.jpg",
+      "pole": null
+    }
+  ]
+}

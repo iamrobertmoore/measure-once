@@ -1,39 +1,42 @@
 {
- "scoredAt": "2026-11-02T17:40:32.933Z",
+ "scoredAt": "2026-11-02T18:33:12.786Z",
  "rows": [
   {
    "window": "living room (shutters)",
    "tape_mm": 2220,
-   "measured_mm": 2157,
-   "error_mm": -63,
-   "spread_mm": 2.2,
-   "frames": 3,
-   "note": ""
+   "measured_mm": 2197,
+   "error_mm": -23,
+   "spread_mm": 19.4,
+   "frames": 6,
+   "note": "",
+   "reply_flags_buyer_number": null
   },
   {
    "window": "bathroom (wooden surround)",
    "tape_mm": 1190,
-   "measured_mm": 1195,
-   "error_mm": 5,
-   "spread_mm": 17.4,
+   "measured_mm": 1210,
+   "error_mm": 20,
+   "spread_mm": 12.5,
    "frames": 5,
-   "note": ""
+   "note": "",
+   "reply_flags_buyer_number": null
   },
   {
    "window": "small bathroom window in recess",
    "tape_mm": 590,
-   "measured_mm": 462,
-   "error_mm": -128,
-   "spread_mm": 0.4,
-   "frames": 4,
-   "note": ""
+   "measured_mm": 474,
+   "error_mm": -116,
+   "spread_mm": 15,
+   "frames": 6,
+   "note": "",
+   "reply_flags_buyer_number": true
   }
  ],
  "abstain": [
   {
    "window": "living room shutters",
    "expected": "refuse",
-   "got": "refused: not enough clear frames",
+   "got": "refused: no sheet found",
    "pass": true
   },
   {
@@ -52,8 +55,8 @@
  "summary": {
   "measured": 3,
   "of": 3,
-  "medianAbsErrorMm": 63,
-  "maxAbsErrorMm": 128,
+  "medianAbsErrorMm": 23,
+  "maxAbsErrorMm": 116,
   "refusedCorrectly": 3,
   "refusalsExpected": 3
  }

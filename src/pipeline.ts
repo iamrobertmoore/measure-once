@@ -171,8 +171,18 @@ export async function runClip(apiKey: string, input: { mp4: Buffer; frames: Buff
     .filter((x) => x.n >= Math.max(3, Math.ceil(okCount / 2)));
   if (scored.length) { const pick = scored.sort((x, y) => y.med - x.med)[0]; per0.splice(0, per0.length, ...pick.v); timings.windowOutline = pick.j; }
   const byFrame = (objs: SamObject[], i: number) => objs.filter((o) => o.frame === i);
-  // Frames with a hand in view are set aside when enough hand-free frames measured.
-  const handFree = picked.map((i, k) => ({ i, k })).filter(({ i, k }) => per0[k].ok && !byFrame(handT, i).some((o) => o.confidence >= 0.5));
+  // Frames where a hand covers the sheet or one of the window's sides are set aside when enough clear frames
+  // measured. A hand elsewhere in the picture (pointing at the top of the window, say) doesn't touch the numbers.
+  const inTheWay = (o: SamObject, r: any) => {
+    const ov = (x0: number, y0: number, x1: number, y1: number) => o.box.left < x1 && o.box.right > x0 && o.box.top < y1 && o.box.bottom > y0;
+    const xs = (q: Pt[]) => q.map((p) => p.x), ys = (q: Pt[]) => q.map((p) => p.y), pad = 30;
+    const S = r.sheet as Pt[], Wq = r.window as Pt[];
+    if (ov(Math.min(...xs(S)) - pad, Math.min(...ys(S)) - pad, Math.max(...xs(S)) + pad, Math.max(...ys(S)) + pad)) return true;
+    const y0 = Math.min(...ys(Wq)), y1 = Math.max(...ys(Wq));
+    for (const side of [[Wq[0], Wq[3]], [Wq[1], Wq[2]]]) { const x = (side[0].x + side[1].x) / 2; if (ov(x - pad, y0, x + pad, y1)) return true; }
+    return false;
+  };
+  const handFree = picked.map((i, k) => ({ i, k })).filter(({ i, k }) => per0[k].ok && !byFrame(handT, i).some((o) => o.confidence >= 0.5 && inTheWay(o, per0[k])));
   let per = per0, idx = picked;
   if (handFree.length >= 3) { per = handFree.map((x) => per0[x.k]); idx = handFree.map((x) => x.i); timings.framesWithHandsSetAside = picked.length - handFree.length; }
   const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0 });

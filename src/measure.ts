@@ -2,7 +2,7 @@
 import sharp from "sharp";
 import type OpenAI from "openai";
 import { segmentImage, fullMask, type SamObject } from "./sam.ts";
-import { quadCorners, snapToImageEdges, jointFitEdges, edgeSamples, hull, boundary, quadFromHull, apply, type Pt } from "./geometry.ts";
+import { quadCorners, snapToImageEdges, jointFitEdges, edgeSamples, hull, boundary, quadFromHull, apply, orderCorners, fitLine, intersect, type Pt } from "./geometry.ts";
 
 export type Gray = { data: Float32Array; W: number; H: number };
 export type RGB = { data: Uint8Array; W: number; H: number };
@@ -45,6 +45,57 @@ export function contrastMap(rgb: RGB, quad: Pt[]): Float32Array {
     out[y * W + x] = ((data[i] - mo[0]) * ax[0] + (data[i + 1] - mo[1]) * ax[1] + (data[i + 2] - mo[2]) * ax[2]) / n2;
   }
   return out;
+}
+
+/**
+ * Edge samples straight from colour, with a contrast axis worked out per side: the colour just inside that side
+ * versus the wall just outside it. A white surround on a cream wall, lit from one side, has a different (and much
+ * fainter) contrast on each side than the window as a whole has against the wall, so one axis for the whole object
+ * loses the faint sides. Each side's map is scaled so wall ~ 0 and object edge ~ 1, then sampled with the object
+ * as the high side, so a neighbouring darker or brighter thing (a picture, a shadow) can't be mistaken for the edge.
+ */
+export function edgeSamplesRGB(quad: Pt[], rgb: RGB, reach: number, samples: number, minContrast = 0.35, rule: "mid" | "outer" = "mid"): Pt[][] {
+  const { data, W, H } = rgb;
+  const q = orderCorners(quad);
+  const px = (x: number, y: number, c: number) => { const xi = Math.round(x), yi = Math.round(y); if (xi < 0 || yi < 0 || xi >= W || yi >= H) return NaN; return data[(yi * W + xi) * 3 + c]; };
+  const med = (a: number[]) => { const s2 = a.filter(Number.isFinite).sort((u, v) => u - v); return s2[Math.floor(s2.length / 2)] ?? 0; };
+  const out: Pt[][] = [];
+  for (let s = 0; s < 4; s++) {
+    const a = q[s], b = q[(s + 1) % 4];
+    const L = Math.hypot(b.x - a.x, b.y - a.y), tx = (b.x - a.x) / L, ty = (b.y - a.y) / L, nx = -ty, ny = tx;
+    const ins: number[][] = [[], [], []], outs: number[][] = [[], [], []];
+    for (let k = 0; k < 60; k++) {
+      const t = 0.15 + (0.7 * k) / 59, cx = a.x + (b.x - a.x) * t, cy = a.y + (b.y - a.y) * t;
+      for (let o = reach + 1; o <= reach + 4; o++) for (let c = 0; c < 3; c++) { ins[c].push(px(cx + nx * o, cy + ny * o, c)); outs[c].push(px(cx - nx * o, cy - ny * o, c)); }
+    }
+    const mi = ins.map(med), mo = outs.map(med), ax = [0, 1, 2].map((c) => mi[c] - mo[c]);
+    const n2 = ax[0] ** 2 + ax[1] ** 2 + ax[2] ** 2;
+    if (n2 < 9) { out.push([]); continue; } // under ~3 levels of difference: nothing to find
+    // Scaled map along a band around this side only.
+    const gray = new Float32Array(W * H);
+    const xs = [a.x, b.x].map((v) => v), ys = [a.y, b.y];
+    const pad = reach + 8;
+    const x0 = Math.max(0, Math.floor(Math.min(...xs) - pad)), x1 = Math.min(W - 1, Math.ceil(Math.max(...xs) + pad));
+    const y0 = Math.max(0, Math.floor(Math.min(...ys) - pad)), y1 = Math.min(H - 1, Math.ceil(Math.max(...ys) + pad));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const i = (y * W + x) * 3;
+      gray[y * W + x] = ((data[i] - mo[0]) * ax[0] + (data[i + 1] - mo[1]) * ax[1] + (data[i + 2] - mo[2]) * ax[2]) / n2;
+    }
+    out.push(edgeSamples(q, gray, W, H, reach, samples, minContrast, 1, rule)[s]);
+  }
+  return out;
+}
+
+/** Coarse-to-fine: a long reach first re-seats any side the mask got several pixels wrong (window masks often sit
+ *  a few pixels inside a pale top edge), then a short reach measures each side from its re-seated position. */
+export function windowSides(quad: Pt[], rgb: RGB): { sides: Pt[][]; quad: Pt[] } {
+  let q = orderCorners(quad);
+  const coarse = edgeSamplesRGB(q, rgb, 14, 40, 0.35, "outer");
+  const lines = coarse.map((pts, i) => (pts.length >= 10 ? fitLine(pts) : null));
+  const orig = [0, 1, 2, 3].map((i) => fitLine([q[i], q[(i + 1) % 4]]));
+  const use = lines.map((l, i) => l ?? orig[i]);
+  q = [0, 1, 2, 3].map((i) => intersect(use[(i + 3) % 4], use[i]));
+  return { sides: edgeSamplesRGB(q, rgb, 8, 60, 0.35, "outer"), quad: q };
 }
 
 export async function loadGray(buf: Buffer): Promise<Gray> {
@@ -111,9 +162,9 @@ export function measureWithMasks(rgb: RGB, sheets: SamObject[], wins: SamObject[
   const topCut = winObj.box.top <= m, bottomCut = winObj.box.bottom >= H - m;
 
   const sheetRough = quadInImage(sheetObj, W, H);
-  const sheet = snapToImageEdges(sheetRough, contrastMap(rgb, sheetRough), W, H, 6);
+  const sheet = snapToImageEdges(sheetRough, contrastMap(rgb, sheetRough), W, H, 6, 40, 1);
   const winRough = quadInImage(winObj, W, H);
-  const sides = edgeSamples(winRough, contrastMap(rgb, winRough), W, H, 8, 60, 0.08);
+  const { sides } = windowSides(winRough, rgb);
   if (bottomCut || sides[2].length < 24) sides[2] = []; // bottom hidden or cluttered: width doesn't need it
   if (topCut || sides[0].length < 12) sides[0] = [];
   if (sides[1].length < 12 || sides[3].length < 12) return { ok: false, reason: "window edges unclear", sheet, window: winRough };

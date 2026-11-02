@@ -9,7 +9,7 @@ const r = JSON.parse(readFileSync(resPath, "utf8"));
 const prep = await prepareClip(clip);
 const f = r.frames.find((x: any) => x.index === r.heroFrame);
 const best = r.options[0]; const len = best.cutToMm ?? best.stockCm * 10;
-const plan = planPole(f.wall, len, 35, catalogue.finialMm[35]);
+const plan = planPole(f.wall, len, 35, catalogue.finialMm[35], 100, best.brackets);
 const api = client(readFileSync(".secrets/meta_api_key", "utf8").trim());
 const res = await renderPole(api, prep.frames[r.heroFrame], f.G, plan);
 writeFileSync(out, res.jpeg); writeFileSync(out.replace(".jpg", ".placed.jpg"), res.placed);

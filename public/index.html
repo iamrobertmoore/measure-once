@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measure Once: Rob's inbox</title>
+<meta name="description" content="A buyer films their window with a sheet of A4 on the wall. Measure Once works out the width in millimetres and drafts the reply.">
+<link rel="preload" href="fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/bricolage-grotesque-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the selected clip</a>
+<div class="app">
+  <aside class="inbox" aria-label="Clips from buyers">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 24" aria-hidden="true"><rect x="0" y="5" width="40" height="14" rx="2" fill="#f2c230"/><path d="M6 5v6M12 5v4M18 5v6M24 5v4M30 5v6M36 5v4" stroke="#17301f" stroke-width="1.6"/></svg>
+      <div>
+        <p class="brand-name">Measure Once</p>
+        <p class="brand-sub">Creations from Rob, Whitstable</p>
+      </div>
+    </div>
+    <h2 class="inbox-title">Clips from buyers</h2>
+    <ul class="clip-list" id="clipList" aria-live="polite">
+      <li class="clip-empty">Loading the clips</li>
+    </ul>
+    <p class="inbox-note">Each clip is a real window, filmed on a phone with a sheet of A4 taped flat beside it.</p>
+  </aside>
+
+  <main id="main" class="pane" tabindex="-1">
+    <div id="paneError" class="pane-error" hidden></div>
+
+    <section class="ask" aria-labelledby="clipTitle">
+      <div class="ask-text">
+        <h1 id="clipTitle" class="clip-title">&nbsp;</h1>
+        <p class="ask-label">What they said, heard by Muse Voice Transcribe</p>
+        <blockquote class="ask-quote">
+          <p><span id="transcript"></span> <button type="button" class="link-btn" id="moreBtn" aria-expanded="false" hidden>more</button></p>
+        </blockquote>
+      </div>
+      <figure class="ask-video">
+        <video id="preview" muted controls playsinline preload="metadata"></video>
+        <figcaption id="videoCap">The buyer's clip</figcaption>
+      </figure>
+    </section>
+
+    <section class="stage" aria-label="Measurement">
+      <div class="hero-col">
+        <div class="run-bar">
+          <p class="run-label" id="runLabel"><span class="run-dot" aria-hidden="true"></span><span id="runLabelText">Recorded run</span></p>
+          <div class="run-actions">
+            <button type="button" class="btn btn-quiet" id="replayBtn">Replay</button>
+            <button type="button" class="btn btn-quiet btn-live" id="liveBtn">Run it live</button>
+          </div>
+        </div>
+        <div class="hero" id="hero">
+          <canvas id="heroCanvas" role="img" aria-label="Loading the measurement drawing"></canvas>
+          <p class="hero-loading" id="heroLoading">Loading the clip</p>
+        </div>
+        <p class="run-status" id="runStatus" role="status" aria-live="polite"></p>
+        <p class="hero-cap" id="heroCap"></p>
+      </div>
+      <div class="facts" id="facts" aria-live="polite"></div>
+    </section>
+
+    <section class="reply" aria-labelledby="replyLabel">
+      <div class="reply-main">
+        <label class="reply-label" id="replyLabel" for="replyText">Draft reply, in your words</label>
+        <p class="reply-sub" id="replySub">Muse Spark drafted this from the measuring code's numbers. Change anything you like before it goes.</p>
+        <textarea id="replyText" rows="9" spellcheck="true"></textarea>
+        <div class="reply-qs" id="replyQs" hidden></div>
+        <div class="reply-actions">
+          <button type="button" class="btn btn-primary" id="sendBtn">Approve and send</button>
+          <button type="button" class="btn btn-quiet btn-small" id="poleBtn">Show the pole on this window</button>
+          <p class="send-status" id="sendStatus" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+      <figure class="pole-view" id="poleView" hidden>
+        <div class="pole-frame" id="poleFrame"></div>
+        <figcaption id="poleCap"></figcaption>
+      </figure>
+    </section>
+  </main>
+
+  <footer class="how" aria-labelledby="howTitle">
+    <h2 id="howTitle" class="how-title">How it works</h2>
+    <ol class="how-steps">
+      <li><span class="how-n">1</span><p><b>Find.</b> SAM 3.1 finds the sheet of A4, the window and the buyer's hands in the clip.</p></li>
+      <li><span class="how-n">2</span><p><b>Measure.</b> Plain code works out millimetres from the sheet's known 210 by 297 mm size, then picks a pole and the cut.</p></li>
+      <li><span class="how-n">3</span><p><b>Reply.</b> Muse Voice Transcribe hears what the buyer asked. Muse Spark drafts my reply.</p></li>
+      <li><span class="how-n">4</span><p><b>Show.</b> Muse Image paints the pole on their wall, and SAM cuts it out so nothing else in the photo changes.</p></li>
+    </ol>
+    <p class="how-guard">Every number in the reply comes from the measuring code. The reply is checked and rejected if it contains any number the code didn't produce.</p>
+    <p class="how-acc"><button type="button" class="link-btn" id="accBtn" hidden>Measured against a tape</button></p>
+  </footer>
+</div>
+
+<dialog id="accDialog" class="acc-dialog" aria-labelledby="accTitle">
+  <h2 id="accTitle">Measured against a tape</h2>
+  <p class="acc-sub">The same windows, measured by hand with a steel tape.</p>
+  <div class="acc-table-wrap"><table class="acc-table" id="accTable"></table></div>
+  <form method="dialog"><button class="btn btn-quiet">Close</button></form>
+</dialog>
+</body>
+</html>

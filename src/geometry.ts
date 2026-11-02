@@ -106,7 +106,7 @@ export function quadFromHull(h: Pt[]): Pt[] {
 
 type Line = { a: number; b: number; c: number }; // a x + b y + c = 0, (a,b) unit normal
 
-function fitLine(pts: Pt[]): Line {
+export function fitLine(pts: Pt[]): Line {
   const n = pts.length;
   const mx = pts.reduce((s, p) => s + p.x, 0) / n, my = pts.reduce((s, p) => s + p.y, 0) / n;
   let sxx = 0, syy = 0, sxy = 0;
@@ -117,7 +117,7 @@ function fitLine(pts: Pt[]): Line {
   return { a, b, c: -(a * mx + b * my) };
 }
 
-function intersect(l: Line, m: Line): Pt {
+export function intersect(l: Line, m: Line): Pt {
   const det = l.a * m.b - m.a * l.b;
   if (Math.abs(det) < 1e-12) throw new Error("parallel edges");
   return { x: (l.b * m.c - m.b * l.c) / det, y: (m.a * l.c - l.a * m.c) / det };
@@ -171,7 +171,7 @@ export function quadCorners(mask: Uint8Array, W: number, H: number): Pt[] {
  * side, find the sub-pixel peak of the gradient magnitude (parabola through the max), refit the side line,
  * intersect neighbours. `gray` is row-major luminance, W x H, in the same pixel frame as `quad`.
  */
-export function edgeSamples(quad: Pt[], gray: Float32Array, W: number, H: number, reach = 4, samples = 40, minContrast = 0.25): Pt[][] {
+export function edgeSamples(quad: Pt[], gray: Float32Array, W: number, H: number, reach = 4, samples = 40, minContrast = 0.25, polarity: 0 | 1 = 0, rule: "mid" | "outer" = "mid"): Pt[][] {
   // For each side, sample short profiles across it. The side's normal points INTO the quad (clockwise order, y down).
   // Edge position = where intensity crosses halfway between the outside level and the inside level (a step edge's
   // true position, unbiased by blur), searching outward from the mask's edge so a nearby second edge isn't taken.
@@ -198,6 +198,26 @@ export function edgeSamples(quad: Pt[], gray: Float32Array, W: number, H: number
       const outside = mean(-reach - band, -reach), inside = mean(reach, reach + band);
       const contrast = inside - outside;
       if (Math.abs(contrast) < minContrast) continue;
+      // On a contrast map the object is the high side by construction. A profile where the outside is higher is
+      // looking at something else nearby (a picture frame, its shadow), so its crossing isn't this object's edge.
+      if (polarity === 1 && contrast < minContrast) continue;
+      if (rule === "outer") {
+        // Moulded trim: wall, then a shaded bevel, then the face. A tape goes to the outside of the bevel, so the edge
+        // is where the profile first leaves the wall's level, scanning in from the wall (not the halfway point between
+        // wall and face, which lands on the bevel's inner side).
+        const wallVals = prof.filter((_, i) => os[i] <= -reach);
+        const sd = Math.sqrt(wallVals.reduce((t, v) => t + (v - outside) ** 2, 0) / wallVals.length);
+        const T = Math.max(4 * sd, 0.3 * Math.abs(contrast));
+        let hit: number | null = null;
+        for (let i = 1; i < os.length; i++) {
+          if (os[i] <= -reach) continue;
+          if (os[i] > reach) break;
+          const d0 = Math.abs(prof[i - 1] - outside), d1 = Math.abs(prof[i] - outside);
+          if (d1 >= T) { hit = d0 >= T ? os[i] : os[i - 1] + ((T - d0) / (d1 - d0)) * (os[i] - os[i - 1]); break; }
+        }
+        if (hit !== null) pts.push({ x: cx + nx * hit, y: cy + ny * hit });
+        continue;
+      }
       const mid = (inside + outside) / 2;
       // crossings of the mid level within [-reach, reach]; take the one nearest the mask edge (o = 0)
       let best: number | null = null;
@@ -220,7 +240,17 @@ export function edgeSamples(quad: Pt[], gray: Float32Array, W: number, H: number
 /** Fit a line, drop points more than `tol` px off it (clutter, shadows), refit. */
 export function trimToLine(pts: Pt[], tol = 1.5): Pt[] {
   if (pts.length < 6) return pts;
-  let keep = pts;
+  // Consensus first: when samples split into two parallel runs (part of a side caught a neighbouring edge), a plain
+  // fit lands between them. Take the line that the most samples agree with to within tol, then refine.
+  let bestSet = pts, bestN = -1;
+  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+    const a = pts[i], b = pts[j], L = Math.hypot(b.x - a.x, b.y - a.y);
+    if (L < 8) continue;
+    const nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L;
+    const set = pts.filter((p) => Math.abs((p.x - a.x) * nx + (p.y - a.y) * ny) <= tol);
+    if (set.length > bestN) { bestN = set.length; bestSet = set; }
+  }
+  let keep = bestSet.length >= 6 ? bestSet : pts;
   for (let it = 0; it < 2; it++) {
     const l = fitLine(keep);
     const d = keep.map((p) => Math.abs(l.a * p.x + l.b * p.y + l.c));
@@ -232,11 +262,26 @@ export function trimToLine(pts: Pt[], tol = 1.5): Pt[] {
   return keep;
 }
 
-export function snapToImageEdges(quad: Pt[], gray: Float32Array, W: number, H: number, reach = 4, samples = 40): Pt[] {
-  const sides = edgeSamples(quad, gray, W, H, reach, samples);
-  if (sides.some((p) => p.length < 6)) return orderCorners(quad);
-  const lines = sides.map(fitLine);
-  return [0, 1, 2, 3].map((i) => intersect(lines[(i + 3) % 4], lines[i]));
+export function snapToImageEdges(quad: Pt[], gray: Float32Array, W: number, H: number, reach = 4, samples = 40, polarity: 0 | 1 = 0): Pt[] {
+  // Two passes: the second starts from the first pass's corners, so samples near a corner the mask got wrong are
+  // within reach of the true edge.
+  let q = orderCorners(quad);
+  for (let pass = 0; pass < 2; pass++) {
+    const sides = edgeSamples(q, gray, W, H, reach, samples, 0.25, polarity);
+    if (sides.some((p) => p.length < 6)) return q;
+    const lines = sides.map((pts, s) => {
+      // A short run of samples pins a side's position but not its angle; then keep the current side's direction and
+      // fit only the offset.
+      const a = q[s], b = q[(s + 1) % 4], L = Math.hypot(b.x - a.x, b.y - a.y), tx = (b.x - a.x) / L, ty = (b.y - a.y) / L;
+      const along = pts.map((p) => (p.x - a.x) * tx + (p.y - a.y) * ty);
+      if (Math.max(...along) - Math.min(...along) >= 0.5 * L) return fitLine(pts);
+      const nx = -ty, ny = tx, offs = pts.map((p) => (p.x - a.x) * nx + (p.y - a.y) * ny).sort((u, v) => u - v);
+      const off = offs[Math.floor(offs.length / 2)];
+      return { a: nx, b: ny, c: -(nx * (a.x + nx * off) + ny * (a.y + ny * off)) };
+    });
+    q = [0, 1, 2, 3].map((i) => intersect(lines[(i + 3) % 4], lines[i]));
+  }
+  return q;
 }
 
 /** Order four corners as top-left, top-right, bottom-right, bottom-left (image coords). */
@@ -346,7 +391,7 @@ export function summarise(v: number[]) {
  * e.g. hidden by a sill or out of shot). Window-aligned wall frame, as in jointFit. Residuals in image pixels:
  * sheet corners, and each window sample's distance to its projected rectangle side.
  */
-export function jointFitEdges(sheetImg: Pt[], winSides: Pt[][], winRough: Pt[], portrait = true) {
+export function jointFitEdges(sheetImg: Pt[], winSides: Pt[][], winRough: Pt[], portrait = true, perspSigma = Infinity) {
   const seed = jointFit(sheetImg, winRough, portrait); // initial G, rect and tilt from rough corners
   const sW = portrait ? A4.w : A4.h, sH = portrait ? A4.h : A4.w;
   const sheetWall: Pt[] = [{ x: 0, y: 0 }, { x: sW, y: 0 }, { x: sW, y: sH }, { x: 0, y: sH }];
@@ -367,6 +412,11 @@ export function jointFitEdges(sheetImg: Pt[], winSides: Pt[][], winRough: Pt[], 
       const L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
       for (const P of winSides[s]) r.push((((P.x - a.x) * (b.y - a.y) - (P.y - a.y) * (b.x - a.x)) / L) * wts[s]);
     }
+    // Weak prior toward a square-on view: G[6], G[7] are how fast depth changes across the wall (per mm). A phone
+    // held by someone facing a window is rarely far off square, and from a small sheet plus the window's sides the
+    // fit can't tell a slight turn from a slightly mis-snapped edge. One "pixel" of penalty per perspSigma of depth
+    // change per metre; real perspective in the window's sides still wins when it's there.
+    if (Number.isFinite(perspSigma)) r.push((q[6] * 1000) / perspSigma, (q[7] * 1000) / perspSigma);
     return r;
   };
   const sq = (r: number[]) => r.reduce((t, v) => t + v * v, 0);
@@ -393,7 +443,7 @@ export function jointFitEdges(sheetImg: Pt[], winSides: Pt[][], winRough: Pt[], 
     if (!improved) break;
   }
   const [x0, y0, w, h, th] = p.slice(8);
-  return { widthMm: Math.abs(w), heightMm: hasBottom ? Math.abs(h) : null, rmsPx: Math.sqrt(cost / cur.length), G: [...p.slice(0, 8), 1] as Mat3, window: { x0, y0, w, h }, sheetTiltDeg: (th * 180) / Math.PI, sidesUsed: winSides.map((s, i) => ((i === 2 && !hasBottom) || (i === 0 && !hasTop) ? 0 : s.length)) };
+  return { widthMm: Math.abs(w), heightMm: hasBottom ? Math.abs(h) : null, rmsPx: (() => { const d = cur.slice(0, Number.isFinite(perspSigma) ? cur.length - 2 : cur.length); return Math.sqrt(d.reduce((t, v) => t + v * v, 0) / d.length); })(), G: [...p.slice(0, 8), 1] as Mat3, window: { x0, y0, w, h }, sheetTiltDeg: (th * 180) / Math.PI, sidesUsed: winSides.map((s, i) => ((i === 2 && !hasBottom) || (i === 0 && !hasTop) ? 0 : s.length)) };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -442,6 +492,11 @@ export function jointFitPose(sheetImg: Pt[], winSides: Pt[][], winRough: Pt[], W
       const a = rect[s], b = rect[(s + 1) % 4], L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
       for (const P of winSides[s]) r.push((((P.x - a.x) * (b.y - a.y) - (P.y - a.y) * (b.x - a.x)) / L) * wts[s]);
     }
+    // Weak prior toward a square-on view: G[6], G[7] are how fast depth changes across the wall (per mm). A phone
+    // held by someone facing a window is rarely far off square, and from a small sheet plus the window's sides the
+    // fit can't tell a slight turn from a slightly mis-snapped edge. One "pixel" of penalty per perspSigma of depth
+    // change per metre; real perspective in the window's sides still wins when it's there.
+    if (Number.isFinite(perspSigma)) r.push((q[6] * 1000) / perspSigma, (q[7] * 1000) / perspSigma);
     return r;
   };
   const sq = (r: number[]) => r.reduce((t2, v) => t2 + v * v, 0);
