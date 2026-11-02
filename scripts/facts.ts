@@ -31,19 +31,26 @@ const facts: Record<string, string | number> = {
   ref_hands_cap: ref("src/pipeline.ts", "handsCapped"),
   ref_hand_way: ref("src/pipeline.ts", "const inTheWay"),
   ref_polarity: ref("src/geometry.ts", "if (polarity === 1 && contrast < minContrast) continue;"),
-  sm_reply_quote: (() => { const m = sm.draft?.reply?.match(/If your 59 cm[^.]*\./); return m ? m[0] : ""; })(),
+  sm_reply_quote: (() => { const m = sm.draft?.reply?.match(/If your 59 cm[^.]*\./); if (!m) throw new Error("recess reply lacks the second size"); return m[0]; })(),
   inbox_sizing_share: "1 in 4", inbox_reply_words_median: 77, inbox_reply_words_p90: 263, inbox_wait_hours_median: 10,
   inbox_threads_read: 125, inbox_sizing_threads: 29,
-  cover_price_uk: "£19.95", cover_price_us: "$9.99",
   lr_tape_cm: cm(row("living").tape_mm), lr_measured_cm: cm(row("living").measured_mm), lr_err_mm: signed(row("living").error_mm),
-  bt_tape_cm: cm(row("bathroom").tape_mm), bt_measured_cm: cm(row("bathroom").measured_mm), bt_err_mm: signed(row("bathroom").error_mm), within_cm: Math.ceil(Math.max(Math.abs(row("living").error_mm), Math.abs(row("bathroom").error_mm)) / 10),
+  bt_tape_cm: cm(row("bathroom").tape_mm), bt_measured_cm: cm(row("bathroom").measured_mm), bt_err_mm: signed(row("bathroom").error_mm), within_cm: (Math.max(Math.abs(row("living").error_mm), Math.abs(row("bathroom").error_mm)) / 10).toFixed(1),
   sm_tape_cm: cm(row("small").tape_mm), sm_measured_cm: cm(row("small").measured_mm), sm_err_mm: signed(row("small").error_mm),
   median_abs_err_mm: acc.summary.medianAbsErrorMm, refused: acc.summary.refusedCorrectly, refusals: acc.summary.refusalsExpected,
   lr_pole: pole(lr.options[0]), lr_cut_each_end_cm: cm(lr.options[0].cutPerEndMm),
   bt_pole: pole(bt.options[0]),
   live_url: process.env.LIVE_URL || "https://measure-once.vercel.app",
   video_url: process.env.VIDEO_URL || "https://www.youtube.com/watch?v=TBD",
-  run_seconds: Math.round((bt.timingsMs.totalMs ?? 30000) / 1000),
+  run_seconds: (() => { const ts = ["living-room", "bathroom", "cloakroom"].map((id) => run(id).timingsMs.totalMs).sort((a: number, b: number) => a - b); return Math.round(ts[1] / 1000); })(),
+  run_seconds_max: Math.max(...["living-room", "bathroom", "cloakroom"].map((id) => Math.round(run(id).timingsMs.totalMs / 1000))),
+  sm_frame_cm: cm(sm.span?.frameWidthMm ?? sm.widthMm), sm_votes: sm.span?.votes ?? "",
+  ...(() => { const b = JSON.parse(readFileSync("public/samples/baseline.json", "utf8")).rows; const o: any = {};
+    for (const [k, id] of [["lr", "living-room"], ["bt", "bathroom"], ["sm", "cloakroom"]]) { const r = b.find((x: any) => x.id === id); o[`${k}_spark_cm`] = r.spark_alone_median_cm; o[`${k}_spark_range`] = `${Math.min(...r.spark_alone_cm)} to ${Math.max(...r.spark_alone_cm)}`; }
+    o.spark_spread_cm = Math.max(...b.map((r: any) => Math.max(...r.spark_alone_cm) - Math.min(...r.spark_alone_cm)));
+    return o; })(),
+  ref_span: ref("src/span.ts", "export async function pickSpan"),
+  ref_upload: ref("api/upload.ts", "export default async function handler"),
 };
 writeFileSync("facts.json", JSON.stringify(facts, null, 1) + "\n");
 if (existsSync("README.template.md")) {

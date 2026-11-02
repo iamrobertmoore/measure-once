@@ -1,4 +1,5 @@
 import { Hero } from "./hero.js";
+import { videoFrames, audioWav, photoFrames, encodeFrames, DecodeError, MAX_PHOTO_COUNT } from "./yours.js";
 
 const $ = (id) => document.getElementById(id);
 const SERVER_NEEDED = "Live runs need the server: npm start";
@@ -12,7 +13,11 @@ const state = {
   shown: null, // id whose details are on screen
   running: null, // id with a live run in flight
   poles: new Map(), // id -> { src, cap }
+  compareFor: null, // id whose before/after pole photos are loaded
 };
+const YOURS = "yours";
+// The visitor's own window: what they picked, and where the run is up to.
+const mine = { files: [], kind: null, busy: false, formOpen: false, t0: 0, sentAt: 0, phase: "", previewUrl: null, count: 0, frameUrls: [] };
 
 // ---------- small helpers ----------
 function fitText(ta) {
@@ -60,10 +65,10 @@ const fixFor = (reason) =>
     ask: "tape a sheet of A4 flat beside the window, keep the whole window in view,",
   };
 
-function refilmDraft(reason) {
+function refilmDraft(reason, photos = false) {
   const f = fixFor(reason);
   return (
-    `Thanks for the video. I couldn't get a measurement I'd trust from this one, as ${f.problem}.\n` +
+    `Thanks for the ${photos ? "photos" : "video"}. I couldn't get a measurement I'd trust from this one, as ${f.problem}.\n` +
     `Could you ${f.ask} and film it again for about 10 seconds? Then I can tell you exactly which pole to order and where to cut it.\n` +
     `Best wishes, Rob`
   );
@@ -127,6 +132,7 @@ const hero = new Hero($("heroCanvas"), {
     const run = currentRun();
     if (el && run && run.ok) el.textContent = cm1(run.widthMm * f);
   },
+  onEnd: () => revealCompare(),
 });
 window.__hero = hero; // handy for poking at the animation from the console
 
@@ -155,11 +161,12 @@ function renderList() {
     .join("");
 }
 
-$("clipList").addEventListener("click", (e) => {
+const lists = document.querySelector(".lists");
+lists.addEventListener("click", (e) => {
   const b = e.target.closest(".clip-item");
   if (b) select(b.dataset.id, { focusMain: false });
 });
-$("clipList").addEventListener("keydown", (e) => {
+lists.addEventListener("keydown", (e) => {
   if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(e.key)) return;
   const items = [...document.querySelectorAll(".clip-item")];
   const i = items.indexOf(document.activeElement);
@@ -177,6 +184,13 @@ async function select(id) {
   state.current = id;
   state.shown = id;
   document.querySelectorAll(".clip-item").forEach((b) => b.setAttribute("aria-current", String(b.dataset.id === id)));
+  setSam(false, true);
+  if (id === YOURS && (!state.runs.has(YOURS) || mine.formOpen || mine.busy)) {
+    hidePaneError();
+    showTry();
+    return;
+  }
+  hideTry();
   const run = currentRun();
   if (!run) {
     showPaneError("I couldn't load this clip. Check that its run.json is in samples/" + id + ".");
@@ -187,6 +201,7 @@ async function select(id) {
   renderFacts(run, id);
   renderReply(run, id, changed);
   renderRunBar(id);
+  setupCompare(id, run);
   await loadHero(run, id);
 }
 
@@ -200,11 +215,18 @@ function hidePaneError() {
 }
 
 function renderAsk(run, id, changed) {
+  const yours = id === YOURS;
   $("clipTitle").textContent = run.title || id;
+  $("askLabel").textContent = yours ? "What you said, heard by Muse Voice Transcribe" : "What they said, heard by Muse Voice Transcribe";
   const full = cap((run.transcript || "").trim());
   const tEl = $("transcript"), more = $("moreBtn");
+  tEl.classList.toggle("none", !full);
   if (!full) {
-    tEl.textContent = "They didn't say anything in the clip.";
+    tEl.textContent = yours
+      ? mine.ranKind === "photos"
+        ? "Photos don't carry sound, so I'm going on the pictures alone."
+        : "I didn't catch anything said in your clip."
+      : "They didn't say anything in the clip.";
     more.hidden = true;
   } else if (full.length > 220) {
     let cut = full.slice(0, 200);
@@ -223,9 +245,23 @@ function renderAsk(run, id, changed) {
     const v = $("preview");
     v.pause();
     v.muted = true;
-    v.poster = `samples/${id}/hero.jpg`;
-    v.src = `samples/${id}/preview.mp4`;
-    $("videoCap").textContent = "The buyer's clip";
+    v.controls = true;
+    if (!yours) {
+      v.poster = `samples/${id}/hero.jpg`;
+      v.src = `samples/${id}/preview.mp4`;
+      $("videoCap").textContent = "The buyer's clip";
+    } else {
+      v.poster = run.heroImage || "";
+      if (mine.previewUrl) {
+        v.src = mine.previewUrl;
+        $("videoCap").textContent = "Your clip";
+      } else {
+        v.removeAttribute("src");
+        v.load();
+        v.controls = false;
+        $("videoCap").textContent = mine.count > 1 ? `Your ${mine.count} photos` : "Your photo";
+      }
+    }
   }
 }
 $("moreBtn").addEventListener("click", () => {
@@ -237,9 +273,10 @@ $("moreBtn").addEventListener("click", () => {
 });
 $("preview").addEventListener("loadedmetadata", (e) => {
   const d = e.target.duration;
-  if (isFinite(d) && d > 0) $("videoCap").textContent = `The buyer's clip, ${Math.round(d)} seconds`;
+  if (isFinite(d) && d > 0) $("videoCap").textContent = `${state.current === YOURS ? "Your clip" : "The buyer's clip"}, ${Math.round(d)} seconds`;
 });
 $("preview").addEventListener("error", () => {
+  if (!$("preview").getAttribute("src")) return;
   $("videoCap").textContent = "The clip preview isn't available.";
 });
 
@@ -258,7 +295,7 @@ function frameThumbs(run, id, isLive) {
         cls = "off";
         lab = "no reading";
       }
-      const src = isLive ? "" : `samples/${id}/f${f.index}.jpg`;
+      const src = id === YOURS ? run.thumbs?.[f.index] || "" : isLive ? "" : `samples/${id}/f${f.index}.jpg`;
       const img = src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : "";
       return `<li class="${cls}" title="Frame ${f.index}">${img}${esc(lab)}</li>`;
     })
@@ -267,12 +304,12 @@ function frameThumbs(run, id, isLive) {
   return frames.length ? `<ul class="frames" aria-label="Frames the code read">${items}${extra}</ul>` : "";
 }
 
-function handsLine(hs) {
+function handsLine(hs, edge = "frame") {
   const side = (mm, which) => {
     const c = Math.round(mm / 10);
-    if (c === 0) return `right at the frame edge on the ${which}`;
-    if (c > 0) return `${c} cm past the frame on the ${which}`;
-    return `${-c} cm inside the frame on the ${which}`;
+    if (c === 0) return `right at the ${edge} edge on the ${which}`;
+    if (c > 0) return `${c} cm past the ${edge} on the ${which}`;
+    return `${-c} cm inside the ${edge} on the ${which}`;
   };
   return `You pointed about ${side(hs.leftPastFrameMm, "left")} and ${side(hs.rightPastFrameMm, "right")}.`;
 }
@@ -281,6 +318,28 @@ function optionTitle(o) {
   return o.cutToMm != null && o.cutPerEndMm > 0
     ? `${o.stockCm} cm pole, cut to ${cmClean(o.cutToMm)} cm`
     : `${o.stockCm} cm pole, used as supplied`;
+}
+
+// One line on Muse Spark's call about which edges the pole spans (runs recorded before this have no span).
+function spanLine(run) {
+  const sp = run.span;
+  if (!sp || !run.ok) return "";
+  const m = String(sp.votes || "").match(/(\d+) of (\d+)/);
+  const votes = m ? `${m[1]} of ${m[2]} frame${m[2] === "1" ? "" : "s"}` : "";
+  if (sp.adopted) {
+    const why = String(sp.why || "");
+    const what = /recess/i.test(why)
+      ? "the recess opening"
+      : /trim|surround|architrave|casing|mould/i.test(why)
+        ? "the outside of the surround"
+        : "the opening on the wall";
+    const [L, R] = [sp.left, sp.right].sort();
+    const w = sp.widthMm || run.widthMm;
+    return `Opening on the wall: <b>${cm1(w)} cm</b>. Muse Spark picked lines ${esc(L)} and ${esc(R)} (${what}${votes ? ", " + votes : ""}); the window frame inside is ${cm1(sp.frameWidthMm)} cm.`;
+  }
+  if (/agreed with the outline/.test(sp.votes || "") && m)
+    return `Muse Spark checked which edges the pole spans and agreed with the measured outline (${votes}).`;
+  return `Muse Spark checked which edges the pole spans. ${esc(cap(sp.votes || "the frames didn't agree on a wider opening"))}, so I kept the measured outline.`;
 }
 
 function renderFacts(run, id) {
@@ -302,11 +361,15 @@ function renderFacts(run, id) {
   const spread = run.spreadMm != null ? (run.spreadMm < 1 ? "under 1 mm" : `${Math.round(run.spreadMm)} mm`) : null;
   const used = run.framesUsed || (run.frames || []).filter((f) => f.ok && !f.outlier).length;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const opening = !!run.span?.adopted;
+  const edge = opening ? "opening" : "frame";
+  const sl = spanLine(run);
   let html = `<div>
-    <p class="fact-label">Frame width</p>
+    <p class="fact-label">${opening ? "Opening width" : "Frame width"}</p>
     <p class="numeral"><span id="fw">${reduce ? cm1(run.widthMm) : "0.0"}</span><span class="unit">cm</span></p>
-    <p class="fact-sub">Measured on ${used} frame${used === 1 ? "" : "s"}${spread ? `, spread ${spread}` : ""}</p>
+    <p class="fact-sub">${opening ? "Frame measured" : "Measured"} on ${used} frame${used === 1 ? "" : "s"}${spread ? `, spread ${spread}` : ""}</p>
     ${frameThumbs(run, id, isLive)}
+    ${sl ? `<p class="fact-span">${sl}</p>` : ""}
   </div>`;
   if (o) {
     const cut = o.cutToMm != null && o.cutPerEndMm > 0;
@@ -314,7 +377,7 @@ function renderFacts(run, id) {
       <p class="fact-label">The pole I'd send</p>
       <p class="fact-main">${esc(optionTitle(o))}</p>
       ${cut ? `<p class="fact-line"><i class="cutmark" aria-hidden="true"></i>${cm1(o.cutPerEndMm)} cm off each end</p>` : `<p class="fact-line"><i class="polemark" aria-hidden="true"></i>No cutting needed</p>`}
-      <p class="fact-line">${cm1(o.overhangEachSideMm)} cm past the frame each side</p>
+      <p class="fact-line">${cm1(o.overhangEachSideMm)} cm past the ${edge} each side</p>
       <p class="fact-line muted">${o.twoPiece ? "Comes in two pieces with a centre joint. " : ""}${o.brackets ? `${o.brackets} brackets. ` : ""}Plus 9 cm finial each end.</p>
     </div>`;
   }
@@ -322,13 +385,13 @@ function renderFacts(run, id) {
     const note = (alt.note || "").split(";").slice(1).join(";").trim();
     html += `<div class="fact-block">
       <p class="fact-label">Also fits</p>
-      <p class="fact-alt"><b>${esc(optionTitle(alt))}</b>${alt.cutToMm != null && alt.cutPerEndMm > 0 ? `, ${cm1(alt.cutPerEndMm)} cm off each end` : ""}, ${cm1(alt.overhangEachSideMm)} cm past the frame each side.${note ? " " + esc(cap(note)) + "." : ""}</p>
+      <p class="fact-alt"><b>${esc(optionTitle(alt))}</b>${alt.cutToMm != null && alt.cutPerEndMm > 0 ? `, ${cm1(alt.cutPerEndMm)} cm off each end` : ""}, ${cm1(alt.overhangEachSideMm)} cm past the ${edge} each side.${note ? " " + esc(cap(note)) + "." : ""}</p>
     </div>`;
   }
   if (run.handSpan) {
     html += `<div class="fact-block">
-      <p class="fact-label">Where they pointed</p>
-      <p class="fact-hands">${esc(handsLine(run.handSpan))}</p>
+      <p class="fact-label">${id === YOURS ? "Where you pointed" : "Where they pointed"}</p>
+      <p class="fact-hands">${esc(handsLine(run.handSpan, edge))}</p>
     </div>`;
   }
   el.innerHTML = html;
@@ -347,7 +410,7 @@ function renderReply(run, id, changed) {
     } else {
       $("replyLabel").textContent = "Ask for a re-film";
       $("replySub").textContent = "There's no size to send yet, so this asks them to film it again.";
-      ta.value = refilmDraft(run.reason);
+      ta.value = refilmDraft(run.reason, id === YOURS && mine.ranKind === "photos");
     }
     $("sendStatus").textContent = "";
     $("sendStatus").className = "send-status";
@@ -384,8 +447,11 @@ function renderReply(run, id, changed) {
     box.hidden = true;
     box.innerHTML = "";
   }
-  poleBtn.hidden = !run.ok;
+  // The live painter works from a recorded clip's files, so it's there for the clips, not for a visitor's own window.
+  const entry = state.samples.find((s) => s.id === id);
+  poleBtn.hidden = !run.ok || id === YOURS;
   poleBtn.disabled = false;
+  poleBtn.textContent = entry?.pole ? "Paint the pole again, live" : "Show the pole on this window";
   const pole = state.poles.get(id);
   if (pole && run.ok) showPole(pole);
   else hidePole();
@@ -396,7 +462,15 @@ function renderRunBar(id) {
   const run = currentRun();
   const lab = $("runLabel");
   lab.classList.toggle("live", live);
-  $("runLabelText").textContent = live ? "Live run, just now" : `Recorded run, ${dateGB(run?.recordedAt) || "earlier"}`;
+  const yours = id === YOURS;
+  lab.classList.toggle("live", live || yours);
+  $("runLabelText").textContent = yours
+    ? "Your clip, measured just now"
+    : live
+      ? "Live run, just now"
+      : `Recorded run, ${dateGB(run?.recordedAt) || "earlier"}`;
+  $("liveBtn").hidden = yours;
+  $("againBtn").hidden = !yours;
   const busy = state.running === id;
   $("liveBtn").disabled = !!state.running;
   $("liveBtn").textContent = busy ? "Running" : "Run it live";
@@ -431,13 +505,93 @@ async function loadHero(run, id) {
 function heroLabel(run) {
   if (!run.ok) return `Photo from the clip. ${fixFor(run.reason).fix}`;
   const o = run.options?.[0];
+  const edge = run.span?.adopted ? "opening" : "frame";
   return (
-    `Front elevation drawn from the clip. The frame is ${cm1(run.widthMm)} cm wide.` +
-    (o ? ` ${optionTitle(o)}, centred 10 cm above the window, ${cm1(o.overhangEachSideMm)} cm past the frame each side.` : "")
+    `Front elevation drawn from the clip. The ${edge} is ${cm1(run.widthMm)} cm wide.` +
+    (o ? ` ${optionTitle(o)}, centred 10 cm above the window, ${cm1(o.overhangEachSideMm)} cm past the ${edge} each side.` : "")
   );
 }
 
-$("replayBtn").addEventListener("click", () => hero.play());
+$("replayBtn").addEventListener("click", () => {
+  setSam(false, true);
+  hero.play();
+});
+
+// ---------- what SAM saw ----------
+function setSam(on, quiet = false) {
+  const b = $("samBtn");
+  b.setAttribute("aria-pressed", String(on));
+  b.textContent = on ? "Back to the drawing" : "What SAM saw";
+  if (quiet) return;
+  hero.showSam(on);
+  const run = currentRun();
+  $("heroCanvas").setAttribute(
+    "aria-label",
+    on ? "The photo with the sheet and window outlines SAM 3.1 returned for this frame." : run ? heroLabel(run) : "",
+  );
+  if (!on) revealCompare();
+}
+$("samBtn").addEventListener("click", () => setSam($("samBtn").getAttribute("aria-pressed") !== "true"));
+
+// ---------- before and after: the painted pole ----------
+function setupCompare(id, run) {
+  const el = $("compare");
+  el.classList.remove("shown");
+  el.hidden = true;
+  const entry = state.samples.find((s) => s.id === id);
+  if (!entry?.pole || !run?.ok) {
+    state.compareFor = null;
+    return;
+  }
+  state.compareFor = id;
+  $("cmpBefore").src = `samples/${id}/hero.jpg`;
+  $("cmpPole").src = `samples/${id}/${entry.pole}`;
+  setCmp(50);
+}
+function setCmp(v) {
+  v = Math.max(0, Math.min(100, v));
+  $("compareFrame").style.setProperty("--pos", v + "%");
+  $("cmpRange").value = String(Math.round(v));
+}
+function revealCompare() {
+  const el = $("compare");
+  if (state.compareFor !== state.current || !el.hidden) return;
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add("shown"));
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  // slide the divider in from the right once, so it's plain the photo can be dragged
+  const t0 = performance.now();
+  const id = state.current;
+  const step = (now) => {
+    if (state.current !== id || cmpDragging) return;
+    const k = Math.min(1, (now - t0) / 1100);
+    setCmp(94 - 44 * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  setCmp(94);
+  setTimeout(() => requestAnimationFrame(step), 250);
+}
+let cmpDragging = false;
+{
+  const frame = $("compareFrame");
+  const at = (e) => {
+    const r = frame.getBoundingClientRect();
+    setCmp(((e.clientX - r.left) / r.width) * 100);
+  };
+  frame.addEventListener("pointerdown", (e) => {
+    cmpDragging = true;
+    frame.setPointerCapture(e.pointerId);
+    at(e);
+    e.preventDefault();
+  });
+  frame.addEventListener("pointermove", (e) => {
+    if (cmpDragging) at(e);
+  });
+  const stop = () => (cmpDragging = false);
+  frame.addEventListener("pointerup", stop);
+  frame.addEventListener("pointercancel", stop);
+  $("cmpRange").addEventListener("input", (e) => setCmp(+e.target.value));
+}
 
 // ---------- run it live ----------
 function setRunStatus(text, kind = "") {
@@ -558,22 +712,7 @@ $("poleBtn").addEventListener("click", async () => {
   const btn = $("poleBtn");
   const o = run.options?.[0];
   const what = o ? optionTitle(o) : "The pole";
-  if (!state.live.has(id)) {
-    // index.json says which samples ship a pre-painted pole.jpg; probe only if it doesn't say
-    const entry = state.samples.find((s) => s.id === id) || {};
-    const src = `samples/${id}/${entry.pole || "pole.jpg"}`;
-    const exists =
-      "pole" in entry
-        ? !!entry.pole
-        : await fetch(src, { method: "HEAD" }).then((r) => r.ok).catch(() => false);
-    if (state.current !== id) return;
-    if (exists) {
-      const p = { src, cap: `${what}, painted by Muse Image. SAM cut the pole out so nothing else in the photo changed.` };
-      state.poles.set(id, p);
-      showPole(p);
-      return;
-    }
-  }
+  // The recorded painting is already under the drawing; this button always asks Muse Image for a fresh one.
   btn.disabled = true;
   showPole({ wait: "Muse Image is painting the pole, about 20 seconds" });
   try {
@@ -583,7 +722,7 @@ $("poleBtn").addEventListener("click", async () => {
     const p = {
       src: data.image,
       cap: data.usedEdit
-        ? `${what}, painted by Muse Image${secs}. SAM cut the pole out so nothing else in the photo changed.`
+        ? `${what}, painted live by Muse Image${secs}. SAM 3.1 cut the pole out so nothing else in the photo changed.`
         : `${what}, drawn onto the photo from the measurements${secs}.`,
     };
     state.poles.set(id, p);
@@ -593,6 +732,270 @@ $("poleBtn").addEventListener("click", async () => {
   } finally {
     btn.disabled = false;
   }
+});
+
+// ---------- your window ----------
+const mb = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
+const isVideo = (f) => f.type.startsWith("video/") || /\.(mov|mp4|m4v|webm|3gp|mkv|avi)$/i.test(f.name);
+const isImage = (f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|heic|heif|gif|avif)$/i.test(f.name);
+
+function showTry() {
+  $("main").classList.add("trying");
+  $("tryPanel").hidden = false;
+  renderTry();
+}
+function hideTry() {
+  $("main").classList.remove("trying");
+  $("tryPanel").hidden = true;
+}
+
+function renderMine() {
+  const st = $("mineStatus"), thumb = $("mineThumb");
+  const run = state.runs.get(YOURS);
+  st.className = "clip-status";
+  if (mine.busy) {
+    st.textContent = `Measuring, ${Math.floor((performance.now() - mine.t0) / 1000)} s`;
+  } else if (run) {
+    const l = statusLine(run);
+    st.textContent = l.text;
+    st.classList.add(l.bad ? "bad" : "ok");
+  } else {
+    st.textContent = "Try it on your own window";
+  }
+  const img = run && (run.thumbs?.[run.heroIndex] || run.heroImage);
+  thumb.classList.toggle("has-img", !!img);
+  thumb.style.backgroundImage = img ? `url("${img}")` : "";
+}
+
+function renderTry() {
+  const busy = mine.busy;
+  for (const id of ["tryFile", "tryCam", "tryPaper"]) $(id).disabled = busy;
+  $("tryDrop").querySelectorAll(".btn").forEach((b) => b.classList.toggle("is-disabled", busy));
+  $("tryGo").disabled = busy || !mine.files.length;
+  $("tryGo").textContent = busy ? "Measuring" : "Measure my window";
+  const ch = $("tryChosen");
+  if (!ch.classList.contains("err")) {
+    if (!mine.files.length) {
+      ch.className = "try-chosen";
+      ch.textContent = "No clip chosen yet. You can drop one here too.";
+    } else {
+      ch.className = "try-chosen picked";
+      ch.textContent = mine.chosenText;
+    }
+  }
+}
+
+function choose(list) {
+  const files = [...(list || [])];
+  if (!files.length) return;
+  const ch = $("tryChosen");
+  ch.className = "try-chosen";
+  const vid = files.find(isVideo);
+  const imgs = files.filter(isImage);
+  if (vid) {
+    mine.files = [vid];
+    mine.kind = "video";
+    mine.chosenText = `${vid.name}, ${mb(vid.size)}` + (files.length > 1 ? ". I'll use this video and leave the rest." : "");
+  } else if (imgs.length) {
+    mine.files = imgs.slice(0, MAX_PHOTO_COUNT);
+    mine.kind = "photos";
+    const n = mine.files.length;
+    mine.chosenText =
+      `${n} photo${n === 1 ? "" : "s"}` +
+      (imgs.length > MAX_PHOTO_COUNT ? `. I'll use the first ${MAX_PHOTO_COUNT}.` : n === 1 ? ". Two or three from slightly different spots work better." : "");
+  } else {
+    mine.files = [];
+    mine.kind = null;
+    ch.className = "try-chosen err";
+    ch.textContent = "That doesn't look like a video or a photo. Pick a clip from your phone, or 2 or 3 photos.";
+  }
+  setTryStatus("");
+  renderTry();
+}
+
+for (const id of ["tryFile", "tryCam"]) {
+  $(id).addEventListener("change", (e) => {
+    window.__f = e.target.files[0]; // DEBUG
+    choose(e.target.files);
+    e.target.value = "";
+  });
+}
+{
+  const drop = $("tryDrop");
+  drop.addEventListener("dragover", (e) => {
+    if (mine.busy) return;
+    e.preventDefault();
+    drop.classList.add("drag");
+  });
+  drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    drop.classList.remove("drag");
+    if (!mine.busy) choose(e.dataTransfer?.files);
+  });
+}
+
+function setTryStatus(text, kind = "") {
+  const el = $("tryStatus");
+  el.className = "run-status" + (kind === "err" ? " err" : "");
+  if (!text) {
+    el.textContent = "";
+    return;
+  }
+  el.innerHTML = (kind === "busy" ? `<span class="spin" aria-hidden="true"></span>` : "") + `<span>${esc(text)}</span>`;
+}
+
+function uploadSteps(withSound) {
+  return [
+    [0, "Sending the frames"],
+    [2, withSound ? "SAM 3.1 is finding the sheet and the window, and Muse Voice Transcribe is listening" : "SAM 3.1 is finding the sheet and the window"],
+    [9, "Working out millimetres"],
+    [12, "Muse Spark is picking which edges the pole spans"],
+    [27, "Muse Spark is drafting the reply"],
+    [62, "Nearly there"],
+  ];
+}
+
+function tickMine() {
+  console.log("DBG tick", mine.phase);
+  if (!mine.busy) return;
+  const s = Math.floor((performance.now() - mine.t0) / 1000);
+  let text = mine.phase;
+  if (mine.sentAt) {
+    const since = (performance.now() - mine.sentAt) / 1000;
+    text = [...mine.steps].reverse().find(([at]) => since >= at)[1];
+  }
+  setTryStatus(`${text}. ${s} s`, "busy");
+  renderMine();
+}
+
+async function postForm(path, fd) {
+  let res;
+  try {
+    res = await fetch(path, { method: "POST", body: fd });
+  } catch {
+    throw new ApiError(SERVER_NEEDED);
+  }
+  const text = await res.text();
+  let data = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    /* not JSON */
+  }
+  if (res.status === 413) throw new ApiError("The clip was too big to send. Try a shorter clip, or 2 or 3 photos.");
+  if ([404, 405, 501].includes(res.status) && !(data && data.error)) throw new ApiError(SERVER_NEEDED);
+  if (!res.ok || (data && data.error)) {
+    let msg = (data && (data.error || data.message)) || "";
+    if (typeof msg !== "string") msg = JSON.stringify(msg);
+    if (!msg && res.status === 429) msg = "Too many live runs just now. Give it a minute and try again.";
+    if (!msg) msg = `The server said ${res.status} ${res.statusText}`.trim();
+    throw new ApiError(msg);
+  }
+  if (data === null) throw new ApiError("The server sent something I couldn't read.");
+  return data;
+}
+
+function showSentFrames(blobs) {
+  mine.frameUrls.forEach((u) => URL.revokeObjectURL(u));
+  mine.frameUrls = blobs.map((b) => URL.createObjectURL(b));
+  const ul = $("tryFrames");
+  ul.innerHTML = mine.frameUrls.map((u) => `<li><img src="${u}" alt=""></li>`).join("");
+  ul.hidden = false;
+}
+
+async function measureMine() {
+  if (mine.busy || !mine.files.length) return;
+  const kind = mine.kind;
+  const files = mine.files;
+  mine.busy = true;
+  mine.t0 = performance.now();
+  mine.sentAt = 0;
+  mine.phase = kind === "video" ? "Picking the sharpest frames" : "Reading your photos";
+  $("tryFrames").hidden = true;
+  renderTry();
+  tickMine();
+  console.log("DBG start");
+  const timer = setInterval(tickMine, 500);
+  try {
+    let canvases;
+    let audioP = Promise.resolve(null);
+    if (kind === "video") {
+      audioP = audioWav(files[0]);
+      ({ canvases } = await videoFrames(files[0], (k, n) => {
+        mine.phase = `Picking the sharpest frames, ${k} of ${n} looked at`;
+      }));
+    } else {
+      canvases = await photoFrames(files);
+    }
+    console.log("DBG frames done");
+    mine.phase = "Getting the frames ready";
+    const wav = await audioP;
+    const { blobs, total } = await encodeFrames(canvases, wav ? wav.size : 0);
+    console.log("DBG encoded", total);
+    showSentFrames(blobs);
+    const fd = new FormData();
+    blobs.forEach((b, i) => fd.append("frame", b, `frame${i}.jpg`));
+    if (wav) fd.append("audio", wav, "audio.wav");
+    fd.append("paper", $("tryPaper").value);
+    fd.append("kind", kind);
+    mine.steps = uploadSteps(!!wav);
+    mine.steps[0][1] = `Sending ${blobs.length} frame${blobs.length === 1 ? "" : "s"}${wav ? " and the sound" : ""}, ${mb(total)}`;
+    mine.sentAt = performance.now();
+    tickMine();
+    const data = await postForm("/api/upload", fd);
+    const run = data.run || data;
+    if (!run || typeof run !== "object" || !("ok" in run)) throw new ApiError("The run came back without a result.");
+    run.id = YOURS;
+    run.title = run.title || "Your window";
+    if (mine.previewUrl) URL.revokeObjectURL(mine.previewUrl);
+    mine.previewUrl = kind === "video" ? URL.createObjectURL(files[0]) : null;
+    mine.count = kind === "photos" ? files.length : 1;
+    mine.ranKind = kind;
+    state.runs.set(YOURS, run);
+    if (typeof run.heroImage === "string" && run.heroImage.startsWith("data:")) state.liveImg.set(YOURS, run.heroImage);
+    else state.liveImg.delete(YOURS);
+    state.poles.delete(YOURS);
+    const secs = Math.round((performance.now() - mine.t0) / 1000);
+    clearInterval(timer);
+    mine.busy = false;
+    mine.formOpen = false;
+    mine.sentAt = 0;
+    setTryStatus(`Done in ${secs} seconds.`);
+    renderMine();
+    renderTry();
+    if (state.current === YOURS) {
+      state.shown = null;
+      await select(YOURS);
+      $("main").focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  } catch (err) {
+    clearInterval(timer);
+    mine.busy = false;
+    mine.sentAt = 0;
+    let msg;
+    if (err instanceof DecodeError) {
+      msg =
+        kind === "video"
+          ? "Your browser couldn't open this video. iPhone videos (HEVC) often won't open in Chrome on a computer. Try Safari, export the clip as Most Compatible (H.264), or take 2 or 3 photos instead."
+          : "I couldn't open one of those photos. iPhone photos (HEIC) often won't open in Chrome on a computer. Try Safari, or save them as JPEG.";
+    } else msg = err instanceof ApiError ? err.message : "Something went wrong: " + err.message;
+    setTryStatus(msg, "err");
+    renderTry();
+    renderMine();
+  }
+}
+
+$("tryForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  measureMine();
+});
+$("againBtn").addEventListener("click", () => {
+  mine.formOpen = true;
+  setTryStatus("");
+  select(YOURS);
+  $("tryTitle").scrollIntoView({ block: "nearest" });
 });
 
 // ---------- accuracy table ----------
@@ -635,6 +1038,7 @@ async function boot() {
     return;
   }
   renderList();
+  renderMine();
   if (!state.samples.length) {
     $("heroLoading").textContent = "No clip selected";
     return;

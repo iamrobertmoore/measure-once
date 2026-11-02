@@ -1,12 +1,12 @@
 {
- "scoredAt": "2026-11-02T18:40:22.931Z",
+ "scoredAt": "2026-11-02T19:40:15.861Z",
  "rows": [
   {
    "window": "living room (shutters)",
    "tape_mm": 2220,
-   "measured_mm": 2194,
-   "error_mm": -26,
-   "spread_mm": 19.9,
+   "measured_mm": 2198,
+   "error_mm": -22,
+   "spread_mm": 25.9,
    "frames": 6,
    "note": "",
    "reply_flags_buyer_number": null
@@ -17,17 +17,17 @@
    "measured_mm": 1210,
    "error_mm": 20,
    "spread_mm": 12.5,
-   "frames": 5,
+   "frames": 6,
    "note": "",
    "reply_flags_buyer_number": null
   },
   {
    "window": "small bathroom window in recess",
    "tape_mm": 590,
-   "measured_mm": 473,
-   "error_mm": -117,
-   "spread_mm": 15,
-   "frames": 6,
+   "measured_mm": 535,
+   "error_mm": -55,
+   "spread_mm": 6.1,
+   "frames": 7,
    "note": "",
    "reply_flags_buyer_number": true
   }
@@ -55,8 +55,8 @@
  "summary": {
   "measured": 3,
   "of": 3,
-  "medianAbsErrorMm": 26,
-  "maxAbsErrorMm": 117,
+  "medianAbsErrorMm": 22,
+  "maxAbsErrorMm": 55,
   "refusedCorrectly": 3,
   "refusalsExpected": 3
  }

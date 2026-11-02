@@ -13,7 +13,7 @@
 <body>
 <a class="skip" href="#main">Skip to the selected clip</a>
 <div class="app">
-  <aside class="inbox" aria-label="Clips from buyers">
+  <aside class="inbox" aria-label="Clips">
     <div class="brand">
       <svg class="brand-mark" viewBox="0 0 40 24" aria-hidden="true"><rect x="0" y="5" width="40" height="14" rx="2" fill="#f2c230"/><path d="M6 5v6M12 5v4M18 5v6M24 5v4M30 5v6M36 5v4" stroke="#17301f" stroke-width="1.6"/></svg>
       <div>
@@ -21,20 +21,73 @@
         <p class="brand-sub">Creations from Rob, Whitstable</p>
       </div>
     </div>
-    <h2 class="inbox-title">Clips from buyers</h2>
-    <ul class="clip-list" id="clipList" aria-live="polite">
-      <li class="clip-empty">Loading the clips</li>
-    </ul>
-    <p class="inbox-note">Each clip is a real window, filmed on a phone with a sheet of A4 taped flat beside it.</p>
+    <div class="lists">
+      <ul class="clip-list mine" id="mineList">
+        <li><button type="button" class="clip-item clip-mine" data-id="yours" aria-current="false">
+          <span class="clip-thumb mine-thumb" id="mineThumb" aria-hidden="true"><svg viewBox="0 0 76 43"><rect x="20" y="8" width="26" height="27" rx="1.5" fill="none" stroke="#eef3fb" stroke-width="1.6"/><path d="M33 8v27M20 21.5h26" stroke="#eef3fb" stroke-width="1"/><rect x="51" y="14" width="9" height="12.7" fill="#f2c230"/><path d="M18 5.5h30" stroke="#f2c230" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+          <span><span class="clip-name">Your window</span>
+          <span class="clip-status" id="mineStatus">Try it on your own window</span></span>
+        </button></li>
+      </ul>
+      <h2 class="inbox-title">Clips</h2>
+      <p class="inbox-note">I filmed these on my own windows, the way a buyer would.</p>
+      <ul class="clip-list" id="clipList" aria-live="polite">
+        <li class="clip-empty">Loading the clips</li>
+      </ul>
+    </div>
   </aside>
 
   <main id="main" class="pane" tabindex="-1">
     <div id="paneError" class="pane-error" hidden></div>
 
+    <section class="try" id="tryPanel" aria-labelledby="tryTitle" hidden>
+      <div class="try-text">
+        <h1 id="tryTitle" class="clip-title">Your window</h1>
+        <p class="try-lede">Tape a sheet of A4 or US Letter flat on the wall beside a window. Film it for about 10 seconds from across the room (both sides of the window in shot, say what you want), or take 2 or 3 photos.</p>
+        <form class="try-form" id="tryForm" novalidate>
+          <div class="try-pick" id="tryDrop">
+            <label class="btn btn-quiet try-choose" for="tryFile">Choose a video or photos</label>
+            <input type="file" id="tryFile" class="vh" accept="video/*,image/*" multiple>
+            <label class="btn btn-quiet try-cam" for="tryCam">Film it now</label>
+            <input type="file" id="tryCam" class="vh" accept="video/*" capture="environment">
+            <p class="try-chosen" id="tryChosen">No clip chosen yet. You can drop one here too.</p>
+          </div>
+          <div class="try-row">
+            <label class="try-paper"><span>Paper</span>
+              <select id="tryPaper">
+                <option value="auto">Auto</option>
+                <option value="A4">A4</option>
+                <option value="Letter">US Letter</option>
+              </select>
+            </label>
+            <button type="submit" class="btn btn-primary" id="tryGo" disabled>Measure my window</button>
+          </div>
+          <p class="try-note">Your clip isn't stored.</p>
+          <p class="run-status" id="tryStatus" role="status" aria-live="polite"></p>
+          <ul class="try-frames" id="tryFrames" aria-label="The frames I'm sending" hidden></ul>
+        </form>
+      </div>
+      <figure class="try-fig" aria-hidden="true">
+        <svg viewBox="0 0 320 220">
+          <rect width="320" height="220" rx="12" fill="#123a6b"/>
+          <g stroke="rgba(238,243,251,.07)"><path d="M40 0v220M80 0v220M120 0v220M160 0v220M200 0v220M240 0v220M280 0v220M0 40h320M0 80h320M0 120h320M0 160h320M0 200h320"/></g>
+          <rect x="70" y="58" width="122" height="120" rx="2" fill="none" stroke="#eef3fb" stroke-width="2.4"/>
+          <path d="M131 58v120M70 118h122" stroke="#eef3fb" stroke-width="1.2" opacity=".7"/>
+          <path d="M52 40h158" stroke="#f2c230" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="47" cy="40" r="5" fill="none" stroke="#f2c230" stroke-width="2"/><circle cx="215" cy="40" r="5" fill="none" stroke="#f2c230" stroke-width="2"/>
+          <rect x="214" y="96" width="30" height="42" fill="rgba(242,194,48,.25)" stroke="#f2c230" stroke-width="2"/>
+          <text x="229" y="121" fill="#f2c230" font-family="Archivo, sans-serif" font-weight="700" font-size="10" text-anchor="middle">A4</text>
+          <path d="M70 196h122" stroke="#eef3fb" stroke-width="1.2"/><path d="M66 200l8-8M188 200l8-8" stroke="#eef3fb" stroke-width="1.6"/>
+          <text x="131" y="212" fill="#eef3fb" font-family="Archivo, sans-serif" font-weight="650" font-size="10.5" text-anchor="middle">both sides in shot</text>
+          <text x="229" y="154" fill="#eef3fb" font-family="Archivo, sans-serif" font-weight="600" font-size="9.5" text-anchor="middle">taped flat</text>
+        </svg>
+      </figure>
+    </section>
+
     <section class="ask" aria-labelledby="clipTitle">
       <div class="ask-text">
         <h1 id="clipTitle" class="clip-title">&nbsp;</h1>
-        <p class="ask-label">What they said, heard by Muse Voice Transcribe</p>
+        <p class="ask-label" id="askLabel">What they said, heard by Muse Voice Transcribe</p>
         <blockquote class="ask-quote">
           <p><span id="transcript"></span> <button type="button" class="link-btn" id="moreBtn" aria-expanded="false" hidden>more</button></p>
         </blockquote>
@@ -51,7 +104,9 @@
           <p class="run-label" id="runLabel"><span class="run-dot" aria-hidden="true"></span><span id="runLabelText">Recorded run</span></p>
           <div class="run-actions">
             <button type="button" class="btn btn-quiet" id="replayBtn">Replay</button>
+            <button type="button" class="btn btn-quiet" id="samBtn" aria-pressed="false">What SAM saw</button>
             <button type="button" class="btn btn-quiet btn-live" id="liveBtn">Run it live</button>
+            <button type="button" class="btn btn-quiet btn-live" id="againBtn" hidden>Measure another</button>
           </div>
         </div>
         <div class="hero" id="hero">
@@ -60,6 +115,17 @@
         </div>
         <p class="run-status" id="runStatus" role="status" aria-live="polite"></p>
         <p class="hero-cap" id="heroCap"></p>
+        <figure class="compare" id="compare" hidden>
+          <div class="compare-frame" id="compareFrame">
+            <img class="cmp-img" id="cmpBefore" alt="The window as it was filmed.">
+            <div class="cmp-after" id="cmpAfter"><img class="cmp-img" id="cmpPole" alt="The same photo with the recommended pole painted in."></div>
+            <span class="cmp-line" id="cmpLine" aria-hidden="true"><span class="cmp-knob"></span></span>
+            <span class="cmp-tag cmp-tag-l" aria-hidden="true">As filmed</span>
+            <span class="cmp-tag cmp-tag-r" aria-hidden="true">With the pole</span>
+            <input type="range" class="cmp-range" id="cmpRange" min="0" max="100" value="50" step="1" aria-label="Slide to compare the photo with and without the pole">
+          </div>
+          <figcaption>Pole painted by Muse Image 1.0, cut out by SAM 3.1 and pasted onto the untouched photo.</figcaption>
+        </figure>
       </div>
       <div class="facts" id="facts" aria-live="polite"></div>
     </section>
@@ -86,10 +152,10 @@
   <footer class="how" aria-labelledby="howTitle">
     <h2 id="howTitle" class="how-title">How it works</h2>
     <ol class="how-steps">
-      <li><span class="how-n">1</span><p><b>Find.</b> SAM 3.1 finds the sheet of A4, the window and the buyer's hands in the clip.</p></li>
-      <li><span class="how-n">2</span><p><b>Measure.</b> Plain code works out millimetres from the sheet's known 210 by 297 mm size, then picks a pole and the cut.</p></li>
+      <li><span class="how-n">1</span><p><b>Find.</b> SAM 3.1 finds the sheet of paper and the window in each frame, and tracks the buyer's hands through the clip.</p></li>
+      <li><span class="how-n">2</span><p><b>Measure.</b> Plain code works out millimetres from the sheet's known size. Muse Spark picks which edges the pole spans, say a recess opening, and the code measures between them and picks a pole and the cut.</p></li>
       <li><span class="how-n">3</span><p><b>Reply.</b> Muse Voice Transcribe hears what the buyer asked. Muse Spark drafts my reply.</p></li>
-      <li><span class="how-n">4</span><p><b>Show.</b> Muse Image paints the pole on their wall, and SAM cuts it out so nothing else in the photo changes.</p></li>
+      <li><span class="how-n">4</span><p><b>Show.</b> Muse Image paints the pole on their wall, and SAM 3.1 cuts it out so nothing else in the photo changes.</p></li>
     </ol>
     <p class="how-guard">Every number in the reply comes from the measuring code or from the buyer's own words. The reply is checked, and rejected if it contains any other number.</p>
     <p class="how-acc"><button type="button" class="link-btn" id="accBtn" hidden>Measured against a tape</button></p>

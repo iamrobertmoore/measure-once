@@ -19,3 +19,12 @@ export const backOut = (x) => {
   const c1 = 1.25, c3 = c1 + 1;
   return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
 };
+
+// Inverse of a row-major 3x3 (image pixels back to wall millimetres when given G).
+export function invertH(m) {
+  const [a, b, c, d, e, f, g, h, i] = m;
+  const A = e * i - f * h, B = -(d * i - f * g), Cc = d * h - e * g;
+  const det = a * A + b * B + c * Cc;
+  if (!det) return null;
+  return [A / det, -(b * i - c * h) / det, (b * f - c * e) / det, B / det, (a * i - c * g) / det, -(a * f - c * d) / det, Cc / det, -(a * h - b * g) / det, (a * e - b * d) / det];
+}

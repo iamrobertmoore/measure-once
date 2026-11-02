@@ -22,7 +22,7 @@ export async function draftReply(api: OpenAI, input: {
   transcript: string; buyerMessage?: string; frameWidthMm: number; windowFrameMm?: number; spreadMm: number; options: Option[]; diameterMm: number; model?: string; handSpanCm?: [number, number]; baseURL?: string;
 }): Promise<Draft> {
   const facts = {
-    measured_frame_width_cm: +(input.frameWidthMm / 10).toFixed(1),
+    measured_width_cm: +(input.frameWidthMm / 10).toFixed(1),
     measured_what: input.windowFrameMm ? "the opening in the wall around the window (it sits back in a recess); the pole spans this" : "the outside of the window frame or its surround",
     ...(input.windowFrameMm ? { window_frame_inside_recess_cm: +(input.windowFrameMm / 10).toFixed(1) } : {}),
     measurement_spread_mm: Math.round(input.spreadMm),
@@ -57,7 +57,7 @@ ${JSON.stringify(facts, null, 1)}
 What the buyer said in the clip: "${input.transcript || "(nothing)"}"
 ${input.buyerMessage ? `Their message: "${input.buyerMessage}"` : ""}
 
-${clash.length ? `The buyer said ${clash[0]} cm but the tool measured the frame at ${facts.measured_frame_width_cm} cm. Do not choose between them silently: in the reply, say both numbers plainly, say the size you recommend for the measured frame, give the size from options_if_buyer_number_is_the_span in case their number is the span the pole must cover, and ask which edges their ${clash[0]} cm runs between (for example a recess opening around a set-back window, where the pole would span the opening). Put that question in "questions" too.\n` : ""}Pick the best option for what they want, and draft my reply: one short paragraph recommending the size with the exact cut per end if any,
+${clash.length ? `The buyer said ${clash[0]} cm but the tool measured the frame at ${facts.measured_width_cm} cm. Do not choose between them silently: in the reply, say both numbers plainly, say the size you recommend for the measured frame, give the size from options_if_buyer_number_is_the_span in case their number is the span the pole must cover, and ask which edges their ${clash[0]} cm runs between (for example a recess opening around a set-back window, where the pole would span the opening). Put that question in "questions" too.\n` : ""}Pick the best option for what they want, and draft my reply: one short paragraph recommending the size with the exact cut per end if any,
 one line on the alternative if there is one, and one line on finial clearance. Under 140 words. ${extra}
 Return JSON: {"curtainType": "eyelet|rings|tab top|pinch pleat|unknown", "chosenStockCm": number, "diameterMm": number, "reply": string, "questions": string[]}`;
   const alt = (facts as any).options_if_buyer_number_is_the_span?.[0];
@@ -105,7 +105,7 @@ export function checkNumbers(reply: string, facts: any, questions: string[] = []
   const cm: number[] = [], mm: number[] = [];
   const addCm = (v: number | null | undefined) => { if (v !== null && v !== undefined && Number.isFinite(v)) { cm.push(v); mm.push(v * 10); } };
   if (facts.buyer_pointed_past_frame_cm) { addCm(facts.buyer_pointed_past_frame_cm.left); addCm(facts.buyer_pointed_past_frame_cm.right); }
-  addCm(facts.measured_frame_width_cm); addCm(facts.window_frame_inside_recess_cm); addCm(facts.finial_adds_each_end_cm); addCm(facts.buyer_number_differs_from_measured_by_cm);
+  addCm(facts.measured_width_cm); addCm(facts.window_frame_inside_recess_cm); addCm(facts.finial_adds_each_end_cm); addCm(facts.buyer_number_differs_from_measured_by_cm);
   for (const v of facts.buyer_said_cm ?? []) addCm(v);
   for (const v of facts.house_overhang_band_cm ?? []) addCm(v);
   for (const o of [...facts.options, ...(facts.options_if_buyer_number_is_the_span ?? [])]) { addCm(o.stock_length_cm); addCm(o.cut_to_cm); addCm(o.cut_each_end_cm); addCm(o.past_frame_each_side_cm); }

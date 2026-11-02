@@ -1,0 +1,51 @@
+{
+ "askedAt": "2026-11-02T19:43:33.136Z",
+ "model": "muse-spark-1.3",
+ "rows": [
+  {
+   "id": "living-room",
+   "frames": 7,
+   "spark_alone_cm": [
+    205,
+    220,
+    185,
+    245,
+    210,
+    210,
+    185
+   ],
+   "spark_alone_median_cm": 210,
+   "measured_cm": 219.8
+  },
+  {
+   "id": "bathroom",
+   "frames": 6,
+   "spark_alone_cm": [
+    86,
+    110,
+    105,
+    105,
+    95,
+    110
+   ],
+   "spark_alone_median_cm": 105,
+   "measured_cm": 121
+  },
+  {
+   "id": "cloakroom",
+   "frames": 8,
+   "spark_alone_cm": [
+    56,
+    44,
+    58,
+    60,
+    50,
+    45,
+    53,
+    50
+   ],
+   "spark_alone_median_cm": 50,
+   "measured_cm": 53.5
+  }
+ ]
+}

@@ -3,7 +3,7 @@
     {
       "id": "living-room",
       "title": "Living room, shutters",
-      "thumb": "f4.jpg",
+      "thumb": "f18.jpg",
       "pole": "pole.jpg"
     },
     {
@@ -15,12 +15,24 @@
     {
       "id": "cloakroom",
       "title": "Small window in a recess",
-      "thumb": "f41.jpg",
-      "pole": null
+      "thumb": "f16.jpg",
+      "pole": "pole.jpg"
     },
     {
       "id": "kitchen-curled",
       "title": "Kitchen, sheet curled",
+      "thumb": "f1.jpg",
+      "pole": null
+    },
+    {
+      "id": "no-sheet",
+      "title": "Living room, no sheet",
+      "thumb": "f0.jpg",
+      "pole": null
+    },
+    {
+      "id": "kitchen-steep",
+      "title": "Kitchen, steep angle",
       "thumb": "f1.jpg",
       "pole": null
     }

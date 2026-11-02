@@ -1,6 +1,6 @@
 // The hero: the photo, the A4 sheet, a tape measure that snaps to the frame,
 // then the photo flattens into a front-on elevation drawing with the pole on it.
-import { applyH, seg, lerp, easeOut, easeInOut, backOut, clamp01 } from "./geom.js";
+import { applyH, invertH, seg, lerp, easeOut, easeInOut, backOut, clamp01 } from "./geom.js";
 
 const DEEP = [18, 58, 107];
 const C = {
@@ -15,7 +15,8 @@ const C = {
 const FINIAL_MM = 90;
 const POLE_ABOVE_MM = 100;
 const MARGIN_MM = 300;
-const A4 = { w: 210, h: 297 };
+const A4 = { w: 210, h: 297, name: "A4" };
+const LETTER = { w: 216, h: 279, name: "US Letter" };
 
 // Seconds. The whole sequence lasts about five and a half seconds.
 export const TL = {
@@ -39,6 +40,36 @@ export const TL = {
   end: 5.5,
 };
 
+// When Muse Spark picked which edges the pole spans, the drawing makes room for those lines before the tape runs.
+const SPAN_IN = [1.05, 1.55];
+const SPAN_PICK = [1.5, 1.85];
+const SPAN_SHIFT = 0.9;
+function timeline(withSpan) {
+  if (!withSpan) return TL;
+  const out = { ...TL, spanIn: SPAN_IN, spanPick: SPAN_PICK };
+  for (const [k, v] of Object.entries(TL)) {
+    if (k === "end") out.end = v + SPAN_SHIFT;
+    else if (v[0] >= TL.tape[0]) out[k] = [v[0] + SPAN_SHIFT, v[1] + SPAN_SHIFT];
+  }
+  return out;
+}
+
+// Which sheet was it? Map SAM's sheet corners back onto the wall and look at the shape (A4 1.41, Letter 1.29).
+function paperOf(f) {
+  const base = { ...A4 };
+  if (!f || !Array.isArray(f.G) || !Array.isArray(f.sheet) || f.sheet.length !== 4) return base;
+  const inv = invertH(f.G);
+  if (!inv) return base;
+  const pts = f.sheet.map((p) => applyH(inv, p.x, p.y));
+  if (pts.some((p) => !isFinite(p[0]) || !isFinite(p[1]))) return base;
+  const w = Math.max(...pts.map((p) => p[0])) - Math.min(...pts.map((p) => p[0]));
+  const h = Math.max(...pts.map((p) => p[1])) - Math.min(...pts.map((p) => p[1]));
+  if (!(w > 50 && h > 50)) return base;
+  const paper = Math.max(w, h) / Math.min(w, h) < 1.35 ? { ...LETTER } : { ...A4 };
+  if (w > h) [paper.w, paper.h] = [paper.h, paper.w];
+  return paper;
+}
+
 export function pickFrame(run) {
   const frames = run.frames || [];
   return (
@@ -58,11 +89,15 @@ const fmtCm = (mm) => {
 };
 
 export class Hero {
-  constructor(canvas, { onCount } = {}) {
+  constructor(canvas, { onCount, onEnd } = {}) {
     this.cv = canvas;
     this.ctx = canvas.getContext("2d");
     this.onCount = onCount || (() => {});
-    this.t = TL.end;
+    this.onEnd = onEnd || (() => {});
+    this.tl = TL;
+    this.paper = { ...A4 };
+    this.samView = false;
+    this.t = this.tl.end;
     this.raf = 0;
     this.token = 0;
     this.img = null;
@@ -102,6 +137,11 @@ export class Hero {
     this.frame = pickFrame(run);
     const f = this.frame;
     this.geo = !!(run.ok && f && Array.isArray(f.G) && f.G.length === 9 && f.wall && (run.options || []).length);
+    this.paper = paperOf(f);
+    const sp = run.span;
+    this.span = this.geo && sp && Array.isArray(sp.edges) && sp.edges.length >= 2 && f.index === run.heroIndex ? sp : null;
+    this.tl = timeline(!!this.span);
+    this.samView = false;
     this._layout();
     return true;
   }
@@ -113,18 +153,21 @@ export class Hero {
 
   play() {
     this.stop();
+    this.samView = false;
     if (!this.img) return;
     if (this.reduce.matches || !this.geo) {
-      this.seek(TL.end);
+      this.seek(this.tl.end);
+      this.onEnd();
       return;
     }
     const start = performance.now();
     const step = (now) => {
       this.t = (now - start) / 1000;
-      if (this.t >= TL.end) {
-        this.t = TL.end;
+      if (this.t >= this.tl.end) {
+        this.t = this.tl.end;
         this.raf = 0;
         this.draw();
+        this.onEnd();
         return;
       }
       this.draw();
@@ -137,7 +180,15 @@ export class Hero {
 
   seek(t) {
     this.stop();
-    this.t = Math.max(0, Math.min(TL.end, t));
+    this.t = Math.max(0, Math.min(this.tl.end, t));
+    this.draw();
+  }
+
+  // "What SAM saw": the untouched photo with the outlines SAM 3.1 returned for this frame.
+  showSam(on) {
+    this.stop();
+    this.samView = !!on;
+    if (!on) this.t = this.tl.end;
     this.draw();
   }
 
@@ -303,6 +354,11 @@ export class Hero {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
     g.globalAlpha = 1;
+    if (this.samView) {
+      this._drawPhoto(1);
+      this._drawSam();
+      return;
+    }
     if (!this.geo) {
       this._drawPhoto(1);
       this._drawRawOutlines();
@@ -312,8 +368,8 @@ export class Hero {
       }
       return;
     }
-    const m = easeInOut(seg(t, ...TL.morph));
-    const c = easeInOut(seg(t, ...TL.tint));
+    const m = easeInOut(seg(t, ...this.tl.morph));
+    const c = easeInOut(seg(t, ...this.tl.tint));
 
     if (m > 0) {
       g.fillStyle = C.deep;
@@ -321,19 +377,20 @@ export class Hero {
       g.fillRect(0, 0, W, H);
       g.globalAlpha = 1;
     }
-    if (m < 1) this._drawPhoto(m > 0 ? 1 - easeOut(seg(t, TL.morph[0], TL.morph[0] + 0.7)) : 1);
+    if (m < 1) this._drawPhoto(m > 0 ? 1 - easeOut(seg(t, this.tl.morph[0], this.tl.morph[0] + 0.7)) : 1);
     if (m > 0) {
       if (c < 1) this._drawMesh(this.tex.nat, m, 1);
       if (c > 0) this._drawMesh(this.tex.cya, m, c);
     }
-    const gridA = easeOut(seg(t, ...TL.grid));
+    const gridA = easeOut(seg(t, ...this.tl.grid));
     if (gridA > 0) this._drawGrid(gridA);
 
     this._drawWindow(t, m);
+    if (this.span) this._drawSpan(t, m);
     this._drawSheet(t, m);
     this._drawTape(t, m);
-    if (t >= TL.frameDim[0]) this._drawElevation(t);
-    const cp = easeOut(seg(t, ...TL.tape));
+    if (t >= this.tl.frameDim[0]) this._drawElevation(t);
+    const cp = easeOut(seg(t, ...this.tl.tape));
     this.onCount(cp);
   }
 
@@ -450,9 +507,9 @@ export class Hero {
   }
 
   _drawWindow(t, m) {
-    const a = easeOut(seg(t, ...TL.win));
+    const a = easeOut(seg(t, ...this.tl.win));
     if (a <= 0) return;
-    const g = this.ctx, wall = this.frame.wall, { heightKnown, sideMm } = this.el;
+    const g = this.ctx, wall = this.frame.frameWall || this.frame.wall, { heightKnown, sideMm } = this.el;
     const x0 = wall.x0, x1 = wall.x0 + wall.w, y0 = wall.y0, y1 = wall.y0 + sideMm;
     const top = this._edge(x0, y0, x1, y0, m);
     const lw = 1.6 + 0.6 * m;
@@ -487,10 +544,10 @@ export class Hero {
   }
 
   _drawSheet(t, m) {
-    const p = easeOut(seg(t, ...TL.sheet));
+    const p = easeOut(seg(t, ...this.tl.sheet));
     if (p <= 0) return;
     const g = this.ctx;
-    const corners = [[0, 0], [A4.w, 0], [A4.w, A4.h], [0, A4.h], [0, 0]];
+    const corners = [[0, 0], [this.paper.w, 0], [this.paper.w, this.paper.h], [0, this.paper.h], [0, 0]];
     const pts = [];
     for (let i = 0; i < 4; i++) {
       const e = this._edge(corners[i][0], corners[i][1], corners[i + 1][0], corners[i + 1][1], m, 6);
@@ -536,37 +593,165 @@ export class Hero {
     g.stroke();
 
     // label under the sheet in the photo, small "A4" inside it on the drawing
-    const la = easeOut(seg(t, ...TL.sheetLabel)) * (1 - seg(t, TL.morph[0] - 0.1, TL.morph[0] + 0.25));
+    const la = easeOut(seg(t, ...this.tl.sheetLabel)) * (1 - seg(t, this.tl.morph[0] - 0.1, this.tl.morph[0] + 0.25));
     if (la > 0) {
-      const [bx, by] = this._at(A4.w / 2, A4.h, m);
-      const [lx] = this._at(0, A4.h, m);
+      const [bx, by] = this._at(this.paper.w / 2, this.paper.h, m);
+      const [lx] = this._at(0, this.paper.h, m);
       const size = this.compact ? 11 : Math.round(15 * this.s);
-      const text = this.compact ? "A4 sheet" : "A4 sheet, 210 by 297 mm";
+      const P = this.paper, name = P.name || "A4";
+      const text = this.compact ? `${name} sheet` : `${name} sheet, ${Math.min(P.w, P.h)} by ${Math.max(P.w, P.h)} mm`;
       this._pill(text, Math.min(Math.max(lx, 8), this.size.W - 8), by + 10 + size * 0.7, {
         size, bg: C.tape, fg: C.ink, align: "left", alpha: la, weight: 650,
       });
       void bx;
     }
-    const sa = easeOut(seg(t, 4.0, 4.4));
+    const sa = easeOut(seg(t, this.tl.stock[0], this.tl.stock[0] + 0.4));
     if (sa > 0 && m >= 1) {
-      const [cx, cy] = this._elev(A4.w / 2, A4.h / 2);
-      this._text("A4", cx, cy, { size: this.compact ? 9 : Math.round(12 * this.s), color: C.tape, alpha: sa, weight: 700 });
+      const [cx, cy] = this._elev(this.paper.w / 2, this.paper.h / 2);
+      this._text(this.paper.name === "US Letter" ? "Letter" : "A4", cx, cy, { size: this.compact ? 9 : Math.round(12 * this.s), color: C.tape, alpha: sa, weight: 700 });
     }
+  }
+
+  // Muse Spark's choice: the candidate edges the code found on the wall, lettered, with the two it picked lit up.
+  _drawSpan(t, m) {
+    const sp = this.span, tl = this.tl;
+    if (t < tl.spanIn[0]) return;
+    const g = this.ctx, { H } = this.size;
+    const fw = this.frame.frameWall || this.frame.wall;
+    const side = this.el.sideMm;
+    const yA = fw.y0 + 0.1 * side, yB = fw.y0 + 0.8 * side;
+    const measured = sp.edges.filter((e) => e.measured).map((e) => e.label);
+    const pickedOutline = [sp.left, sp.right].every((l) => measured.includes(l));
+    const hl = sp.adopted || pickedOutline || measured.length !== 2 ? [sp.left, sp.right] : measured;
+    const pick = easeOut(seg(t, ...tl.spanPick));
+    const outOthers = 1 - easeOut(seg(t, tl.tape[0] + 0.15, tl.tape[0] + 0.6));
+    // An adopted opening stays on the drawing as two thin lines; otherwise the chosen pair is the outline itself.
+    const outChosen = sp.adopted ? 1 : 1 - easeOut(seg(t, tl.morph[0] + 0.2, tl.morph[0] + 0.8));
+    const letterOut = 1 - easeOut(seg(t, tl.morph[0], tl.morph[0] + 0.5));
+    const size = this.compact ? 10 : Math.round(Math.max(11, 13 * this.s));
+    let prevX = -1e9, stagger = 0;
+    g.lineCap = "round";
+    sp.edges.forEach((e, k) => {
+      const chosen = hl.includes(e.label);
+      const p = easeOut(seg(t, tl.spanIn[0] + k * 0.07, tl.spanIn[0] + k * 0.07 + 0.32));
+      if (p <= 0) return;
+      const fade = chosen ? outChosen : outOthers * (1 - 0.5 * pick);
+      if (fade <= 0.01) return;
+      const pts = this._edge(e.xMm, yA, e.xMm, lerp(yA, yB, p), m, 8);
+      if (m < 1) {
+        this._path(pts);
+        g.lineWidth = 4;
+        g.strokeStyle = `rgba(23,48,31,${0.3 * (1 - m) * fade})`;
+        g.stroke();
+      }
+      const hp = chosen ? pick : 0;
+      if (!chosen) g.setLineDash([5, 4]);
+      if (hp < 1) {
+        this._path(pts);
+        g.lineWidth = 1.3;
+        g.strokeStyle = `rgba(255,255,255,${0.9 * fade * (1 - hp)})`;
+        g.stroke();
+      }
+      g.setLineDash([]);
+      if (hp > 0) {
+        this._path(pts);
+        g.lineWidth = sp.adopted && m >= 1 ? 1.6 : 2.6;
+        g.strokeStyle = `rgba(242,194,48,${fade * hp * (m >= 1 ? 0.85 : 1)})`;
+        g.stroke();
+      }
+      const [bx, by] = this._at(e.xMm, yB, m);
+      stagger = bx - prevX < size * 2.2 ? 1 - stagger : 0;
+      prevX = bx;
+      const la = fade * p * letterOut;
+      if (la > 0.01) {
+        const lit = chosen && pick > 0.5;
+        this._pill(e.label, bx, by + 8 + size * 0.75 + stagger * size * 1.75, {
+          size, bg: lit ? C.tape : "rgba(23,48,31,.9)", fg: lit ? C.ink : "#ffffff", alpha: la, weight: 720,
+        });
+      }
+    });
+    const ca = pick * (1 - easeOut(seg(t, tl.morph[0] - 0.25, tl.morph[0] + 0.15)));
+    if (ca > 0) {
+      const [L, R] = [...hl].sort();
+      const text = sp.adopted
+        ? `Muse Spark picked ${L} and ${R}${this.compact ? "" : ": the pole spans these"}`
+        : pickedOutline
+          ? `Muse Spark picked ${L} and ${R}${this.compact ? "" : ", the outline I measured"}`
+          : "Muse Spark's picks didn't agree, so I kept the outline";
+      const cs = this.compact ? 11 : Math.round(15 * this.s);
+      this._pill(text, 14, H - 14 - cs * 0.75, { size: cs, bg: C.ink, fg: "#ffffff", align: "left", alpha: ca, weight: 600 });
+    }
+  }
+
+  _drawSam() {
+    const g = this.ctx, f = this.frame, run = this.run, { H } = this.size;
+    if (!f) return;
+    const sx = f.width ? this.ph.iw / f.width : 1, sy = f.height ? this.ph.ih / f.height : sx;
+    const P = (pt) => [this.ph.x + pt.x * sx * this.ph.r, this.ph.y + pt.y * sy * this.ph.r];
+    const size = this.compact ? 11 : Math.round(Math.max(12, 14 * this.s));
+    const quad = (pts, col, fill) => {
+      const q = pts.map(P);
+      this._path(q);
+      g.closePath();
+      g.fillStyle = fill;
+      g.fill();
+      g.lineJoin = "round";
+      g.lineWidth = 4.5;
+      g.strokeStyle = "rgba(23,48,31,.45)";
+      g.stroke();
+      g.lineWidth = 2.4;
+      g.strokeStyle = col;
+      g.stroke();
+      return {
+        x0: Math.min(...q.map((p) => p[0])), y0: Math.min(...q.map((p) => p[1])),
+        x1: Math.max(...q.map((p) => p[0])), y1: Math.max(...q.map((p) => p[1])),
+      };
+    };
+    let any = false;
+    if (Array.isArray(f.window) && f.window.length >= 3) {
+      any = true;
+      const b = quad(f.window, "#ffffff", "rgba(255,255,255,.08)");
+      const y = b.y0 > size * 2.6 ? b.y0 - 10 - size * 0.75 : b.y0 + 10 + size * 0.75;
+      this._pill("Window (SAM 3.1 + edge fit)", b.x0, y, { size, bg: C.ink, fg: "#ffffff", align: "left", weight: 650 });
+    }
+    if (Array.isArray(f.sheet) && f.sheet.length >= 3) {
+      any = true;
+      const b = quad(f.sheet, C.tape, "rgba(242,194,48,.22)");
+      const name = this.paper.name || "A4";
+      const below = b.y1 + 10 + size * 0.75;
+      this._pill(`${name} sheet (SAM 3.1)`, b.x0, below < H - size ? below : b.y0 - 10 - size * 0.75, {
+        size, bg: C.tape, fg: C.ink, align: "left", weight: 650,
+      });
+    }
+    const hands = (run?.hands || []).filter((h) => h && h.img && h.frame === run.heroIndex);
+    hands.forEach((h, i) => {
+      any = true;
+      const [x, y] = P(h.img);
+      g.beginPath();
+      g.arc(x, y, this.compact ? 5 : 7, 0, Math.PI * 2);
+      g.fillStyle = C.cut;
+      g.fill();
+      g.lineWidth = 2;
+      g.strokeStyle = "#ffffff";
+      g.stroke();
+      if (i === 0) this._pill("Fingertip (SAM 3.1)", x + 12, y, { size: size - 1, bg: "#ffffff", fg: C.ink, align: "left", weight: 650 });
+    });
+    if (!any) this._pill("SAM 3.1 found nothing it could use on this frame", 14, H - 14 - size * 0.75, { size, bg: C.ink, fg: "#ffffff", align: "left", weight: 600 });
   }
 
   _tapeStartX() {
     const w = this.frame.wall;
     if (w.x0 + w.w <= 0) return 0; // window left of the sheet
-    if (w.x0 >= A4.w) return A4.w; // window right of the sheet
+    if (w.x0 >= this.paper.w) return this.paper.w; // window right of the sheet
     return w.x0 + w.w / 2;
   }
 
   _drawTape(t, m) {
-    if (t < TL.tape[0]) return;
-    const out = 1 - easeOut(seg(t, ...TL.tapeOut));
+    if (t < this.tl.tape[0]) return;
+    const out = 1 - easeOut(seg(t, ...this.tl.tapeOut));
     if (out <= 0) return;
     const g = this.ctx, wall = this.frame.wall, s = this.s;
-    const tp = backOut(seg(t, ...TL.tape));
+    const tp = backOut(seg(t, ...this.tl.tape));
     const xs = this._tapeStartX();
     const aW = lerp(xs, wall.x0, tp), bW = lerp(xs, wall.x0 + wall.w, tp);
     const y0 = wall.y0;
@@ -637,9 +822,9 @@ export class Hero {
     g.globalAlpha = 1;
 
     // the readout rides with the tape
-    const ra = seg(t, TL.tape[0], TL.tape[0] + 0.15) * (1 - seg(t, TL.morph[0] - 0.1, TL.morph[0] + 0.3));
+    const ra = seg(t, this.tl.tape[0], this.tl.tape[0] + 0.15) * (1 - seg(t, this.tl.morph[0] - 0.1, this.tl.morph[0] + 0.3));
     if (ra > 0) {
-      const cp = easeOut(seg(t, ...TL.tape));
+      const cp = easeOut(seg(t, ...this.tl.tape));
       const val = fmt1((this.run.widthMm / 10) * cp) + " cm";
       const size = this.compact ? 17 : Math.round(Math.max(20, Math.min(46, 38 * s)));
       const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2;
@@ -665,7 +850,7 @@ export class Hero {
     const hasCut = opt.cutPerEndMm > 0 && opt.cutToMm != null;
 
     // frame width
-    const fa = easeOut(seg(t, ...TL.frameDim));
+    const fa = easeOut(seg(t, ...this.tl.frameDim));
     if (fa > 0) {
       const yd = Math.min(heightKnown ? yBot + (cpt ? 14 : 24 * s) : yBot - 4, H - (cpt ? 22 : 34 * s));
       g.globalAlpha = fa;
@@ -674,14 +859,14 @@ export class Hero {
         this._ext(xR, yBot + 4, yd + 5, 0.6);
       }
       this._dim(xL, xR, yd, C.line, 1.2);
-      this._text(`${fmt1(this.run.widthMm / 10)} cm frame`, (xL + xR) / 2, yd + fs * 0.95, {
+      this._text(`${fmt1(this.run.widthMm / 10)} cm ${this.run.span?.adopted ? "opening" : "frame"}`, (xL + xR) / 2, yd + fs * 0.95, {
         size: fs + (cpt ? 0 : 2), color: C.line, weight: 700, knock: true,
       });
       g.globalAlpha = 1;
     }
 
     // stock length, ghosted
-    const sa = easeOut(seg(t, ...TL.stock));
+    const sa = easeOut(seg(t, ...this.tl.stock));
     if (hasCut && sa > 0) {
       g.globalAlpha = sa * 0.85;
       g.setLineDash([3, 3]);
@@ -693,7 +878,7 @@ export class Hero {
     }
 
     // the pole, grown from the centre out to its cut length
-    const pg = easeOut(seg(t, ...TL.pole));
+    const pg = easeOut(seg(t, ...this.tl.pole));
     if (pg > 0) {
       const hw = halfCut * pg;
       g.fillStyle = C.tape;
@@ -717,7 +902,7 @@ export class Hero {
     const y1 = py - poleTh / 2 - rowGap;
     const y2 = y1 - rowGap;
     // pole dimension
-    const pa = easeOut(seg(t, ...TL.poleDim));
+    const pa = easeOut(seg(t, ...this.tl.poleDim));
     if (pa > 0) {
       g.globalAlpha = pa;
       this._ext(cxs - halfCut, py - poleTh / 2 - 3, y1 - 5, 0.5);
@@ -729,7 +914,7 @@ export class Hero {
     }
 
     // what comes off: stock dimension with the cut ends in red
-    const ca = easeOut(seg(t, ...TL.cut));
+    const ca = easeOut(seg(t, ...this.tl.cut));
     if (hasCut && ca > 0) {
       g.globalAlpha = ca;
       this._ext(cxs - halfStock, py - poleTh / 2 - 3, y2 - 5, 0.4);
@@ -759,7 +944,7 @@ export class Hero {
     }
 
     // finials, 9 cm each end
-    const fna = easeOut(seg(t, ...TL.finials));
+    const fna = easeOut(seg(t, ...this.tl.finials));
     if (fna > 0) {
       g.globalAlpha = fna;
       const rad = Math.max(cpt ? 2.2 : 3, Math.min(poleTh * 0.95, 30 * k));
@@ -780,7 +965,7 @@ export class Hero {
     }
 
     // how far past the frame each side
-    const oa = easeOut(seg(t, ...TL.overhang));
+    const oa = easeOut(seg(t, ...this.tl.overhang));
     const ohPx = halfCut - (xR - xL) / 2;
     if (!cpt && oa > 0 && ohPx > 34) {
       g.globalAlpha = oa;
@@ -796,7 +981,7 @@ export class Hero {
 
     // where the buyer pointed
     const hs = this.run.handSpan;
-    const ha = easeOut(seg(t, ...TL.pointed));
+    const ha = easeOut(seg(t, ...this.tl.pointed));
     if (!cpt && hs && ha > 0) {
       g.globalAlpha = ha * 0.95;
       const yh = yTop + 16 * s;
@@ -821,7 +1006,7 @@ export class Hero {
     }
 
     // title block and scale bar
-    const ta = easeOut(seg(t, ...TL.title));
+    const ta = easeOut(seg(t, ...this.tl.title));
     if (ta > 0) {
       g.globalAlpha = ta;
       const pad = cpt ? 8 : 18 * s;
@@ -841,7 +1026,9 @@ export class Hero {
       this._text("0", pad, by - fsm * 0.75, { size: fsm, color: C.line, weight: 600, align: "left" });
       this._text(barLab, pad + bar, by - fsm * 0.75, { size: fsm, color: C.line, weight: 600, align: "center" });
       if (!cpt) {
-        this._text("Front elevation, drawn from the buyer's clip. Scale from one sheet of A4.", pad, H - pad - 2, {
+        const whose = this.run.id === "yours" ? "your clip" : "the buyer's clip";
+        const sheet = this.paper.name === "US Letter" ? "US Letter" : "A4";
+        this._text(`Front elevation, drawn from ${whose}. Scale from one sheet of ${sheet}.`, pad, H - pad - 2, {
           size: Math.max(11, Math.round(13 * s)), color: C.line, weight: 500, align: "left", family: "Bricolage", stretch: "normal",
         });
       }
