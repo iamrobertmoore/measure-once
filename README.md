@@ -10,7 +10,7 @@ I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles c
 
 Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into millimetres. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
 
-It's built around my shop, but the same desk works for anyone who sells something cut to fit a window: blinds, shutters, curtains, tracks.
+It's built around my shop, but the measuring isn't tied to it. The page has a second catalogue, a made-to-measure roller blind using the usual trade rules, and the same clip gives that maker the width to order inside the recess or outside it. Blinds, shutters, curtains and tracks all start with the same question.
 
 ## Try it
 
@@ -22,6 +22,7 @@ No login, nothing to install.
 | Pick **Living room, shutters** | My own window: the sheet is found, a tape snaps across the frame, and the photo flattens into a scale drawing with the pole, the cut and where I pointed |
 | Press **Run it live** | The whole pipeline runs again on that clip, on Meta's models, in about 67 seconds |
 | Pick **Small window in a recess** | Muse Spark picks the recess opening on the wall, not the frame set back inside it. I'd said 59 cm; the reply gives sizes for both and asks which edges I meant |
+| Switch to **Roller blind** | Same clip, same measurement, another maker's rules: the width to order inside the recess or outside it, and a reply in that maker's voice |
 | Pick any of the last three clips | No sheet, a curled sheet, a steep angle: it refuses and says how to film it again, instead of guessing |
 
 ## Why not just a tape measure?
@@ -62,9 +63,9 @@ For my living room window it recommends the **300 cm pole cut to 255 cm**, takin
 | Model | The job | Code |
 |---|---|---|
 | SAM 3.1, images | Finds the A4 sheet and three readings of the window (frame, surround, wooden frame) on each sharp frame | [`src/measure.ts:131`](src/measure.ts#L131) |
-| SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside | [`src/pipeline.ts:190`](src/pipeline.ts#L190) |
+| SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside (on full clips; an upload from the page sends frames only, to stay fast and small) | [`src/pipeline.ts:205`](src/pipeline.ts#L205) |
 | Muse Spark 1.3, looking | Picks which of the lettered edges the pole spans: the trim, or a recess opening around a set-back window | [`src/span.ts:103`](src/span.ts#L103) |
-| Muse Voice Transcribe | Hears what the buyer wants, biased to English with curtain words as keywords | [`src/pipeline.ts:47`](src/pipeline.ts#L47) |
+| Muse Voice Transcribe | Hears what the buyer wants, biased to English with curtain words as keywords | [`src/pipeline.ts:49`](src/pipeline.ts#L49) |
 | Muse Spark 1.3, writing | Picks among the options the code computed and drafts the reply in my voice, reconciling the buyer's own numbers | [`src/agent.ts:70`](src/agent.ts#L70) |
 | Muse Image 1.0 | Turns a flat pole drawn in exact perspective into a photoreal pole on the buyer's wall | [`src/render.ts:52`](src/render.ts#L52) |
 | SAM 3.1 on Muse Image's output | Cuts out only the painted pole, so nothing else in the buyer's photo changes | [`src/render.ts:60`](src/render.ts#L60) |
@@ -100,7 +101,7 @@ Muse Spark knows which edges matter (alone, it went for the recess opening too),
 ## Live and recorded
 
 - **Recorded:** each of my clips opens on a run recorded with this code, so the page is instant. Its real end-to-end time is shown under the drawing (about 67 s; the slowest was 102 s).
-- **Live:** **Your window**, **Run it live** and **Show the pole** call Meta's models there and then. A daily cap keeps the public page from running up a bill.
+- **Live:** **Your window**, **Run it live** and **Show the pole** call Meta's models there and then. A daily cap on each server, and a spend limit on the Meta account, keep the public page from running up a bill.
 - **Approve and send** emails the reply to a demo inbox I own. The page never asks a visitor for an email address, and an uploaded clip isn't kept.
 
 ## Run it yourself
@@ -123,15 +124,15 @@ npm test                                          # geometry, catalogue and repl
 - **The window came out 6 cm short.** I looked at the corners: the line sat on the inner side of the architrave's moulding, about 20 pixels in at the top. Edges are now taken where the profile first leaves the wall, which is where a tape goes ([`src/geometry.ts:206`](src/geometry.ts#L206)). Each side gets its own colour contrast, because a white surround on a cream wall is lit differently left and right ([`src/measure.ts:91`](src/measure.ts#L91)).
 - **A picture frame pulled the sheet's edge.** A hanging picture's wooden bar sat just above the sheet and dragged its top edge up by 9 pixels. Samples where the "outside" is brighter than the sheet are now ignored ([`src/geometry.ts:205`](src/geometry.ts#L205)).
 - **The recess.** The tool measured the frame, set back in the recess, and I'd measured the opening on the wall: 11.7 cm apart. Asked for coordinates, Muse Spark was out by up to 100 pixels; asked to pick between lettered lines the code had found, it was consistent, 3 of 3. Its first picks wandered between a reveal edge and a wall corner, so candidates are now limited to a narrow band beside the window, and a wider span is only taken when frames agree within 25 mm ([`src/span.ts:103`](src/span.ts#L103)).
-- **The buyer and the tool can both be right.** Lengths the buyer says out loud are picked out ([`src/agent.ts:129`](src/agent.ts#L129)). When they disagree with the measurement, the reply must give both sizes; if Muse Spark leaves one out twice, the code writes that sentence itself from the computed option.
-- **Hands everywhere.** Buyers point while they film. Frames are only set aside when a hand covers the sheet or a side of the window ([`src/pipeline.ts:221`](src/pipeline.ts#L221)), and a slow hand-tracking call can't hold up the size ([`src/pipeline.ts:195`](src/pipeline.ts#L195)).
+- **The buyer and the tool can both be right.** Lengths the buyer says out loud are picked out ([`src/agent.ts:130`](src/agent.ts#L130)). When they disagree with the measurement, the reply must give both sizes; if Muse Spark leaves one out twice, the code writes that sentence itself from the computed option.
+- **Hands everywhere.** Buyers point while they film. Frames are only set aside when a hand covers the sheet or a side of the window ([`src/pipeline.ts:236`](src/pipeline.ts#L236)), and a slow hand-tracking call can't hold up the size ([`src/pipeline.ts:210`](src/pipeline.ts#L210)).
 - **SAM sees several windows in one window.** Frame, trim and surround all come back. The reading seen in the most frames wins, unless a wider one is clearly wider.
 - **Muse Image moves things.** The painted pole can drift from where the code placed it. Only SAM's pole mask inside the planned region is kept, gaps are closed, a short cut-out gets one retry, and the exact drawn pole is the fallback.
 - **Rate limits.** Ten frames times four prompts at once hit the limit. SAM calls share a small queue with backoff, and the hands moved to one video call.
 
 ## How this maps to the judging
 
-- **Impact:** a problem from my own inbox, with numbers, and the same desk fits anyone selling things cut to fit a window. Anyone can try it on their own window.
+- **Impact:** a problem from my own inbox, with numbers. A second maker's catalogue (roller blinds) runs on the same measurement, and anyone can try it on their own window.
 - **Use of Meta's tooling:** SAM 3.1 on images, video and Muse Image's output; Muse Spark both looking (which edges) and writing; Muse Voice Transcribe; Muse Image. The models see and choose, the code measures.
 - **Technical depth:** a joint wall-plane fit, sub-pixel edges to the outside of the trim, frames that must agree, a model-alone baseline, a unit-aware number checker, and a tape-measured test set with clips filmed to fail.
 - **Demo:** a live page with no login that measures your window, and runs the whole pipeline on demand.

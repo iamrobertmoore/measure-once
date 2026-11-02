@@ -10,7 +10,7 @@ I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles c
 
 Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into millimetres. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
 
-It's built around my shop, but the same desk works for anyone who sells something cut to fit a window: blinds, shutters, curtains, tracks.
+It's built around my shop, but the measuring isn't tied to it. The page has a second catalogue, a made-to-measure roller blind using the usual trade rules, and the same clip gives that maker the width to order inside the recess or outside it. Blinds, shutters, curtains and tracks all start with the same question.
 
 ## Try it
 
@@ -22,6 +22,7 @@ No login, nothing to install.
 | Pick **Living room, shutters** | My own window: the sheet is found, a tape snaps across the frame, and the photo flattens into a scale drawing with the pole, the cut and where I pointed |
 | Press **Run it live** | The whole pipeline runs again on that clip, on Meta's models, in about {{run_seconds}} seconds |
 | Pick **Small window in a recess** | Muse Spark picks the recess opening on the wall, not the frame set back inside it. I'd said 59 cm; the reply gives sizes for both and asks which edges I meant |
+| Switch to **Roller blind** | Same clip, same measurement, another maker's rules: the width to order inside the recess or outside it, and a reply in that maker's voice |
 | Pick any of the last three clips | No sheet, a curled sheet, a steep angle: it refuses and says how to film it again, instead of guessing |
 
 ## Why not just a tape measure?
@@ -62,7 +63,7 @@ For my living room window it recommends the **{{lr_pole}}**, taking **{{lr_cut_e
 | Model | The job | Code |
 |---|---|---|
 | SAM 3.1, images | Finds the A4 sheet and three readings of the window (frame, surround, wooden frame) on each sharp frame | {{ref_sam_image}} |
-| SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside | {{ref_sam_video}} |
+| SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside (on full clips; an upload from the page sends frames only, to stay fast and small) | {{ref_sam_video}} |
 | Muse Spark 1.3, looking | Picks which of the lettered edges the pole spans: the trim, or a recess opening around a set-back window | {{ref_span}} |
 | Muse Voice Transcribe | Hears what the buyer wants, biased to English with curtain words as keywords | {{ref_voice}} |
 | Muse Spark 1.3, writing | Picks among the options the code computed and drafts the reply in my voice, reconciling the buyer's own numbers | {{ref_spark}} |
@@ -100,7 +101,7 @@ Muse Spark knows which edges matter (alone, it went for the recess opening too),
 ## Live and recorded
 
 - **Recorded:** each of my clips opens on a run recorded with this code, so the page is instant. Its real end-to-end time is shown under the drawing (about {{run_seconds}} s; the slowest was {{run_seconds_max}} s).
-- **Live:** **Your window**, **Run it live** and **Show the pole** call Meta's models there and then. A daily cap keeps the public page from running up a bill.
+- **Live:** **Your window**, **Run it live** and **Show the pole** call Meta's models there and then. A daily cap on each server, and a spend limit on the Meta account, keep the public page from running up a bill.
 - **Approve and send** emails the reply to a demo inbox I own. The page never asks a visitor for an email address, and an uploaded clip isn't kept.
 
 ## Run it yourself
@@ -131,7 +132,7 @@ npm test                                          # geometry, catalogue and repl
 
 ## How this maps to the judging
 
-- **Impact:** a problem from my own inbox, with numbers, and the same desk fits anyone selling things cut to fit a window. Anyone can try it on their own window.
+- **Impact:** a problem from my own inbox, with numbers. A second maker's catalogue (roller blinds) runs on the same measurement, and anyone can try it on their own window.
 - **Use of Meta's tooling:** SAM 3.1 on images, video and Muse Image's output; Muse Spark both looking (which edges) and writing; Muse Voice Transcribe; Muse Image. The models see and choose, the code measures.
 - **Technical depth:** a joint wall-plane fit, sub-pixel edges to the outside of the trim, frames that must agree, a model-alone baseline, a unit-aware number checker, and a tape-measured test set with clips filmed to fail.
 - **Demo:** a live page with no login that measures your window, and runs the whole pipeline on demand.

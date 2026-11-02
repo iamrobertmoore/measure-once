@@ -108,10 +108,11 @@ export function checkNumbers(reply: string, facts: any, questions: string[] = []
   addCm(facts.measured_width_cm); addCm(facts.window_frame_inside_recess_cm); addCm(facts.finial_adds_each_end_cm); addCm(facts.buyer_number_differs_from_measured_by_cm);
   for (const v of facts.buyer_said_cm ?? []) addCm(v);
   for (const v of facts.house_overhang_band_cm ?? []) addCm(v);
+  for (const v of facts.extra_cm ?? []) addCm(v);
   for (const o of [...facts.options, ...(facts.options_if_buyer_number_is_the_span ?? [])]) { addCm(o.stock_length_cm); addCm(o.cut_to_cm); addCm(o.cut_each_end_cm); addCm(o.past_frame_each_side_cm); }
   mm.push(facts.diameter_mm, facts.measurement_spread_mm);
   const counts = new Set<number>([1, 2, 3, 4]);
-  for (const o of facts.options) counts.add(o.brackets);
+  for (const o of facts.options) if (o.brackets) counts.add(o.brackets);
   const near = (v: number, list: number[]) => list.some((f) => Math.abs(f - v) < 0.051 || Math.round(f) === v);
   const text = [reply, ...questions].join("\n");
   const bad: string[] = [];

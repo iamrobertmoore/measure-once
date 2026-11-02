@@ -27,7 +27,8 @@ export default async function handler(req: any, res: any) {
     const paperRaw = String(fd.get("paper") || "auto");
     const paper = paperRaw === "A4" || paperRaw === "Letter" ? paperRaw : undefined;
     const photos = String(fd.get("kind") || "") === "photos";
-    const r = await runClip(key(), { frames, wav, fps: 3, paper, maxFrames: 8, minFrames: photos ? 1 : 3 });
+    const seller = String(fd.get("seller") || "poles") === "blinds" ? "blinds" : "poles";
+    const r = await runClip(key(), { frames, wav, fps: 3, paper, maxFrames: 8, minFrames: photos ? 1 : 3, seller });
     const heroIndex = r.heroFrame ?? r.frames.find((f: any) => f.ok)?.index ?? 0;
     const heroImage = `data:image/jpeg;base64,${frames[heroIndex].toString("base64")}`;
     const thumbs: Record<number, string> = {};

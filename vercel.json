@@ -2,12 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/run.ts": {
-      "maxDuration": 120,
+      "maxDuration": 300,
       "memory": 1769,
       "includeFiles": "samples/*/{meta.json,clip.mp4,audio.wav,frames/*.jpg}"
     },
     "api/render.ts": {
-      "maxDuration": 90,
+      "maxDuration": 300,
       "memory": 1769,
       "includeFiles": "public/samples/*/{run.json,hero.jpg}"
     },
@@ -18,7 +18,7 @@
       "maxDuration": 10
     },
     "api/upload.ts": {
-      "maxDuration": 120,
+      "maxDuration": 300,
       "memory": 1769
     }
   }

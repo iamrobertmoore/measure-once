@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { toFile } from "openai";
 import { client, segmentImage, segmentVideo, fullMask, type SamObject } from "./sam.ts";
 import { pickSpan } from "./span.ts";
+import { blindOptions, draftBlindReply } from "./blinds.ts";
 import { loadRGB } from "./measure.ts";
 import { measureStill, measureWithMasks, loadRGB, WINDOW_PROMPTS, type StillResult } from "./measure.ts";
 import { apply, invert, summarise, type Pt } from "./geometry.ts";
@@ -24,6 +25,7 @@ export type Result = {
   framesUsed?: number;
   hands: HandPoint[];
   handSpan?: { leftPastFrameMm: number; rightPastFrameMm: number } | null;
+  blinds?: { options: any[]; draft?: { reply: string; questions: string[] }; model: string };
   span?: { adopted: boolean; widthMm: number; frameWidthMm: number; why: string; left: string; right: string; edges: any[]; votes: string };
   transcript: string;
   options: Option[];
@@ -68,7 +70,7 @@ export async function run(apiKey: string, input: { frames: Buffer[]; wav?: Buffe
   return finish(api, apiKey, { per, frameIdx: input.frames.map((_, i) => i), frameBufs: input.frames, hands, transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0 });
 }
 
-async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; frameIdx: number[]; frameBufs: Buffer[]; hands: SamObject[][]; transcript: string; buyerMessage?: string; diameterMm?: number; draft?: boolean; timings: Record<string, number>; t0: number; minFrames?: number }): Promise<Result> {
+async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; frameIdx: number[]; frameBufs: Buffer[]; hands: SamObject[][]; transcript: string; buyerMessage?: string; diameterMm?: number; draft?: boolean; timings: Record<string, number>; t0: number; minFrames?: number; seller?: "poles" | "blinds" }): Promise<Result> {
   const { per, frameIdx, transcript, timings } = a;
   const diameter = a.diameterMm ?? 35;
   const sizes = await Promise.all(frameIdx.map((i) => sharp(a.frameBufs[i]).metadata()));
@@ -147,6 +149,19 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
   }
 
   result.options = sizeOptions(sizingMm, diameter);
+  if (a.seller === "blinds") {
+    // Another maker's rules on the same measurement: a made-to-measure roller blind.
+    const t1 = t(), recess = !!result.span?.adopted;
+    const options = blindOptions({ openingMm: sizingMm, recess, heightMm: result.heightMm ?? null });
+    result.blinds = { options, model: "muse-spark-1.3" };
+    if (a.draft !== false) {
+      try { result.blinds.draft = await draftBlindReply(api, { transcript, openingMm: sizingMm, recess, frameMm: recess ? w.median : undefined, heightMm: result.heightMm ?? null, options }); }
+      catch (e: any) { result.reason = `reply draft failed: ${e.message}`; }
+    }
+    timings.draftMs = t() - t1; timings.totalMs = t() - a.t0;
+    if (!result.models.includes("muse-spark-1.3")) result.models.push("muse-spark-1.3");
+    return result;
+  }
   if (a.draft !== false) {
     const t1 = t();
     const hs2 = result.handSpan ? [Math.round(result.handSpan.leftPastFrameMm / 10), Math.round(result.handSpan.rightPastFrameMm / 10)] as [number, number] : undefined;
@@ -171,7 +186,7 @@ async function sharpness(jpeg: Buffer): Promise<number> {
  * are segmented on the sharpest frames (image calls, which give the cleanest edges); Voice Transcribe hears the
  * request; the geometry runs on frames with no hand in the way.
  */
-export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buffer[]; fps: number; wav?: Buffer; buyerMessage?: string; diameterMm?: number; draft?: boolean; maxFrames?: number; paper?: "A4" | "Letter"; minFrames?: number }): Promise<Result & { fps: number }> {
+export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buffer[]; fps: number; wav?: Buffer; buyerMessage?: string; diameterMm?: number; draft?: boolean; maxFrames?: number; paper?: "A4" | "Letter"; minFrames?: number; seller?: "poles" | "blinds" }): Promise<Result & { fps: number }> {
   const api: OpenAI = client(apiKey);
   const timings: Record<string, number> = {};
   const t0 = t();
@@ -230,7 +245,7 @@ export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buf
   const handFree = picked.map((i, k) => ({ i, k })).filter(({ i, k }) => per0[k].ok && !byFrame(handT, i).some((o) => o.confidence >= 0.5 && inTheWay(o, per0[k])));
   let per = per0, idx = picked;
   if (handFree.length >= 4) { per = handFree.map((x) => per0[x.k]); idx = handFree.map((x) => x.i); timings.framesWithHandsSetAside = picked.length - handFree.length; }
-  const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0, minFrames: input.minFrames });
+  const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0, minFrames: input.minFrames, seller: input.seller });
   r.models = ["sam-3.1", ...(input.mp4 ? ["sam-3.1 (video tracking: hands)"] : []), "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.startsWith("muse-spark"))];
   return { ...r, fps: input.fps };
 }

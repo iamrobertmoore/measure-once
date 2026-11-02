@@ -7,7 +7,8 @@ export default async function handler(req: any, res: any) {
   if (!allow("runs")) return res.status(429).json({ error: "Today's live runs are used up. The recorded run above is the same pipeline; try again tomorrow." });
   try {
     const s = loadSample(String(req.body?.sample || ""));
-    const r = await runClip(key(), { mp4: s.mp4, frames: s.frames, wav: s.wav, fps: s.fps });
+    const seller = req.body?.seller === "blinds" ? "blinds" : "poles";
+    const r = await runClip(key(), { mp4: s.mp4, frames: s.frames, wav: s.wav, fps: s.fps, seller });
     const heroIndex = r.heroFrame ?? 0;
     // The page draws the outlines over the hero frame, so send the frame this run picked (it can differ run to run).
     const heroImage = s.frames[heroIndex] ? `data:image/jpeg;base64,${s.frames[heroIndex].toString("base64")}` : undefined;
