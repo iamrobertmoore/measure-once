@@ -315,7 +315,7 @@ function renderFacts(run, id) {
       <p class="fact-main">${esc(optionTitle(o))}</p>
       ${cut ? `<p class="fact-line"><i class="cutmark" aria-hidden="true"></i>${cm1(o.cutPerEndMm)} cm off each end</p>` : `<p class="fact-line"><i class="polemark" aria-hidden="true"></i>No cutting needed</p>`}
       <p class="fact-line">${cm1(o.overhangEachSideMm)} cm past the frame each side</p>
-      <p class="fact-line muted">${o.twoPiece ? "Comes in two pieces with a centre joint. " : ""}Plus 9 cm finial each end.</p>
+      <p class="fact-line muted">${o.twoPiece ? "Comes in two pieces with a centre joint. " : ""}${o.brackets ? `${o.brackets} brackets. ` : ""}Plus 9 cm finial each end.</p>
     </div>`;
   }
   if (alt) {
