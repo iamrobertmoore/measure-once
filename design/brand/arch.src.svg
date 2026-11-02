@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="760" viewBox="0 0 1760 760">
+  <style>/*FONTS*/
+    .h { font-family: BricoB; fill: #17301f; }
+    .b { font-family: BricoM; fill: #5b6a5f; }
+    .tag { font-family: BricoB; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2f5d3f"/></marker>
+  </defs>
+  <rect width="1760" height="760" rx="28" fill="#f3f5f1"/>
+
+  <!-- column labels -->
+  <text x="56" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">THE BUYER</text>
+  <text x="430" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">META MODELS SEE AND HEAR</text>
+  <text x="900" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">MY CODE DOES THE NUMBERS</text>
+  <text x="1330" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">REPLY, PICTURE, ME</text>
+
+  <!-- buyer -->
+  <rect x="36" y="300" width="350" height="160" rx="22" fill="#ffffff" stroke="#d9ded6" stroke-width="3"/>
+  <text x="62" y="356" class="h" font-size="32">A short clip</text>
+  <text x="62" y="398" class="b" font-size="24">window, A4 on the wall,</text>
+  <text x="62" y="430" class="b" font-size="24">"from about here to here"</text>
+
+  <!-- models -->
+  <rect x="420" y="120" width="400" height="160" rx="22" fill="#ffffff" stroke="#123a6b" stroke-width="3"/>
+  <text x="450" y="176" class="h" font-size="32">SAM 3.1, images</text>
+  <text x="450" y="218" class="b" font-size="24">the sheet and the window,</text>
+  <text x="450" y="250" class="b" font-size="24">sharpest frames</text>
+  <rect x="420" y="300" width="400" height="160" rx="22" fill="#ffffff" stroke="#123a6b" stroke-width="3"/>
+  <text x="450" y="356" class="h" font-size="32">SAM 3.1, video</text>
+  <text x="450" y="398" class="b" font-size="24">the buyer's hands, whole clip,</text>
+  <text x="450" y="430" class="b" font-size="24">one call</text>
+  <rect x="420" y="480" width="400" height="160" rx="22" fill="#ffffff" stroke="#123a6b" stroke-width="3"/>
+  <text x="450" y="536" class="h" font-size="32">Muse Voice Transcribe</text>
+  <text x="450" y="578" class="b" font-size="24">what they want,</text>
+  <text x="450" y="610" class="b" font-size="24">curtain words as keywords</text>
+
+  <!-- code -->
+  <rect x="880" y="120" width="390" height="250" rx="22" fill="#fff8e0" stroke="#f2c230" stroke-width="4"/>
+  <text x="910" y="176" class="h" font-size="32">Wall-plane geometry</text>
+  <text x="910" y="218" class="b" font-size="24">A4 sets the scale, the window</text>
+  <text x="910" y="250" class="b" font-size="24">sets the angle, edges to the</text>
+  <text x="910" y="282" class="b" font-size="24">outside of the trim, frames</text>
+  <text x="910" y="314" class="b" font-size="24">must agree or it refuses</text>
+  <rect x="880" y="390" width="390" height="250" rx="22" fill="#fff8e0" stroke="#f2c230" stroke-width="4"/>
+  <text x="910" y="446" class="h" font-size="32">My catalogue</text>
+  <text x="910" y="488" class="b" font-size="24">stock lengths, 15 to 20 cm</text>
+  <text x="910" y="520" class="b" font-size="24">past the frame, cut equally</text>
+  <text x="910" y="552" class="b" font-size="24">off each end, brackets,</text>
+  <text x="910" y="584" class="b" font-size="24">finials</text>
+
+  <!-- outputs -->
+  <rect x="1320" y="120" width="380" height="200" rx="22" fill="#ffffff" stroke="#123a6b" stroke-width="3"/>
+  <text x="1350" y="176" class="h" font-size="32">Muse Spark</text>
+  <text x="1350" y="218" class="b" font-size="24">drafts my reply; a checker</text>
+  <text x="1350" y="250" class="b" font-size="24">rejects any number the code</text>
+  <text x="1350" y="282" class="b" font-size="24">or buyer didn't give</text>
+  <rect x="1320" y="340" width="380" height="170" rx="22" fill="#ffffff" stroke="#123a6b" stroke-width="3"/>
+  <text x="1350" y="396" class="h" font-size="32">Muse Image + SAM 3.1</text>
+  <text x="1350" y="438" class="b" font-size="24">paints the pole, cuts it out,</text>
+  <text x="1350" y="470" class="b" font-size="24">nothing else changes</text>
+  <rect x="1320" y="530" width="380" height="110" rx="22" fill="#17301f"/>
+  <text x="1350" y="580" class="h" font-size="32" style="fill:#ffffff">I approve and send</text>
+  <text x="1350" y="618" class="b" font-size="24" style="fill:#c9d6cc">size, cut, picture</text>
+
+  <!-- arrows -->
+  <g stroke="#2f5d3f" stroke-width="4" fill="none" marker-end="url(#a)">
+    <path d="M386 360 C404 360 400 200 416 200"/>
+    <path d="M386 380 L416 380"/>
+    <path d="M386 400 C404 400 400 560 416 560"/>
+    <path d="M820 200 L876 230"/>
+    <path d="M820 380 L876 300"/>
+    <path d="M1075 370 L1075 386"/>
+    <path d="M1270 260 L1316 220"/>
+    <path d="M1270 515 L1316 425"/>
+    <path d="M620 640 L620 690 L1295 690 L1295 270 L1316 270"/>
+    <path d="M1510 510 L1510 526"/>
+    <path d="M1510 320 L1510 336"/>
+  </g>
+  <rect x="960" y="670" width="200" height="40" rx="20" fill="#ffffff"/>
+  <text x="1060" y="698" class="b" font-size="22" text-anchor="middle">what they asked</text>
+</svg>
