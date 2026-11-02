@@ -38,6 +38,6 @@
     <line x1="90" y1="356" x2="90" y2="388" stroke="#ffffff" stroke-width="3"/>
     <line x1="410" y1="356" x2="410" y2="388" stroke="#ffffff" stroke-width="3"/>
     <rect x="178" y="352" width="144" height="40" rx="6" fill="#123a6b"/>
-    <text x="250" y="382" class="ub" font-size="26" fill="#ffffff" text-anchor="middle">219.4 cm</text>
+    <text x="250" y="382" class="ub" font-size="26" fill="#ffffff" text-anchor="middle">219.8 cm</text>
   </g>
 </svg>

@@ -12,7 +12,7 @@
   <!-- column labels -->
   <text x="56" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">THE BUYER</text>
   <text x="430" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">META MODELS SEE AND HEAR</text>
-  <text x="900" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">MY CODE DOES THE NUMBERS</text>
+  <text x="900" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">MEASURE, THEN CHOOSE</text>
   <text x="1330" y="76" class="tag" font-size="24" fill="#8a968d" letter-spacing="2">REPLY, PICTURE, ME</text>
 
   <!-- buyer -->
@@ -36,18 +36,19 @@
   <text x="450" y="610" class="b" font-size="24">curtain words as keywords</text>
 
   <!-- code -->
-  <rect x="880" y="120" width="390" height="250" rx="22" fill="#fff8e0" stroke="#f2c230" stroke-width="4"/>
-  <text x="910" y="176" class="h" font-size="32">Wall-plane geometry</text>
-  <text x="910" y="218" class="b" font-size="24">A4 sets the scale, the window</text>
-  <text x="910" y="250" class="b" font-size="24">sets the angle, edges to the</text>
-  <text x="910" y="282" class="b" font-size="24">outside of the trim, frames</text>
-  <text x="910" y="314" class="b" font-size="24">must agree or it refuses</text>
-  <rect x="880" y="390" width="390" height="250" rx="22" fill="#fff8e0" stroke="#f2c230" stroke-width="4"/>
-  <text x="910" y="446" class="h" font-size="32">My catalogue</text>
-  <text x="910" y="488" class="b" font-size="24">stock lengths, 15 to 20 cm</text>
-  <text x="910" y="520" class="b" font-size="24">past the frame, cut equally</text>
-  <text x="910" y="552" class="b" font-size="24">off each end, brackets,</text>
-  <text x="910" y="584" class="b" font-size="24">finials</text>
+  <rect x="880" y="120" width="390" height="190" rx="22" fill="#fff8e0" stroke="#f2c230" stroke-width="4"/>
+  <text x="910" y="172" class="h" font-size="32">Wall-plane geometry</text>
+  <text x="910" y="212" class="b" font-size="24">A4 sets the scale, the window</text>
+  <text x="910" y="244" class="b" font-size="24">the angle; edges to the outside</text>
+  <text x="910" y="276" class="b" font-size="24">of the trim; frames must agree</text>
+  <rect x="880" y="330" width="390" height="140" rx="22" fill="#ffffff" stroke="#123a6b" stroke-width="3"/>
+  <text x="910" y="382" class="h" font-size="30">Spark picks the span</text>
+  <text x="910" y="422" class="b" font-size="24">which lettered edges: trim</text>
+  <text x="910" y="454" class="b" font-size="24">or a recess opening</text>
+  <rect x="880" y="490" width="390" height="150" rx="22" fill="#fff8e0" stroke="#f2c230" stroke-width="4"/>
+  <text x="910" y="542" class="h" font-size="32">My catalogue</text>
+  <text x="910" y="582" class="b" font-size="24">stock lengths, 15 to 20 cm past,</text>
+  <text x="910" y="614" class="b" font-size="24">equal cut each end, brackets</text>
 
   <!-- outputs -->
   <rect x="1320" y="120" width="380" height="200" rx="22" fill="#ffffff" stroke="#123a6b" stroke-width="3"/>
@@ -70,9 +71,10 @@
     <path d="M386 400 C404 400 400 560 416 560"/>
     <path d="M820 200 L876 230"/>
     <path d="M820 380 L876 300"/>
-    <path d="M1075 370 L1075 386"/>
+    <path d="M1075 310 L1075 326"/>
+    <path d="M1075 470 L1075 486"/>
     <path d="M1270 260 L1316 220"/>
-    <path d="M1270 515 L1316 425"/>
+    <path d="M1270 565 L1316 425"/>
     <path d="M620 640 L620 690 L1295 690 L1295 270 L1316 270"/>
     <path d="M1510 510 L1510 526"/>
     <path d="M1510 320 L1510 336"/>
