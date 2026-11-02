@@ -203,6 +203,11 @@ export class Hero {
   // ---------- layout: photo placement, elevation viewport, rectified textures ----------
   _layout() {
     const rect = this.cv.getBoundingClientRect();
+    // Hidden (another pane is showing): nothing to lay out yet. The resize observer lays it out once it's shown.
+    if (rect.width < 8 || rect.height < 8) {
+      this.size = { W: 0, H: 0, dpr: 1 };
+      return;
+    }
     const W = Math.max(1, Math.round(rect.width));
     const H = Math.max(1, Math.round(rect.height));
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -641,7 +646,7 @@ export class Hero {
       if (m < 1) {
         this._path(pts);
         g.lineWidth = 4;
-        g.strokeStyle = `rgba(23,48,31,${0.3 * (1 - m) * fade})`;
+        g.strokeStyle = `rgba(23,48,31,${0.45 * (1 - m) * fade})`;
         g.stroke();
       }
       const hp = chosen ? pick : 0;

@@ -39,10 +39,10 @@ const dateGB = (iso) => {
 
 const FIXES = {
   "sheet not flat or cut off": {
-    short: "sheet curled",
-    fix: "The sheet isn't flat or is partly out of shot. Tape all four corners flat and keep the whole sheet in view.",
-    problem: "the sheet of A4 isn't lying flat or is partly out of shot",
-    ask: "tape all four corners of the sheet flat to the wall beside the window, keep the whole sheet in view,",
+    short: "sheet not flat in view",
+    fix: "The sheet doesn't look flat, it's at too steep an angle, or part of it is out of shot. Tape all four corners flat, film from more square-on, and keep the whole sheet in view.",
+    problem: "the sheet of A4 doesn't look flat to the camera (curled, at a steep angle, or partly out of shot)",
+    ask: "tape all four corners of the sheet flat to the wall beside the window, film from more square-on, keep the whole sheet in view,",
   },
   "no sheet found": {
     short: "no sheet in view",
@@ -815,7 +815,6 @@ function choose(list) {
 
 for (const id of ["tryFile", "tryCam"]) {
   $(id).addEventListener("change", (e) => {
-    window.__f = e.target.files[0]; // DEBUG
     choose(e.target.files);
     e.target.value = "";
   });
@@ -857,7 +856,6 @@ function uploadSteps(withSound) {
 }
 
 function tickMine() {
-  console.log("DBG tick", mine.phase);
   if (!mine.busy) return;
   const s = Math.floor((performance.now() - mine.t0) / 1000);
   let text = mine.phase;
@@ -915,7 +913,6 @@ async function measureMine() {
   $("tryFrames").hidden = true;
   renderTry();
   tickMine();
-  console.log("DBG start");
   const timer = setInterval(tickMine, 500);
   try {
     let canvases;
@@ -928,11 +925,9 @@ async function measureMine() {
     } else {
       canvases = await photoFrames(files);
     }
-    console.log("DBG frames done");
     mine.phase = "Getting the frames ready";
     const wav = await audioP;
     const { blobs, total } = await encodeFrames(canvases, wav ? wav.size : 0);
-    console.log("DBG encoded", total);
     showSentFrames(blobs);
     const fd = new FormData();
     blobs.forEach((b, i) => fd.append("frame", b, `frame${i}.jpg`));
