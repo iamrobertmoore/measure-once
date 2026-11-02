@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { client } from "../src/sam.ts";
 import { key } from "../src/live.ts";
 import { blindOptions, draftBlindReply } from "../src/blinds.ts";
+process.env.MODEL_API_KEY_FILE ??= ".secrets/meta_api_key"; // local runs only
 const id = process.argv[2];
 const p = `public/samples/${id}/run.json`;
 const run = JSON.parse(readFileSync(p, "utf8"));

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import sharp from "sharp";
 import { client } from "../src/sam.ts";
 import { key } from "../src/live.ts";
+process.env.MODEL_API_KEY_FILE ??= ".secrets/meta_api_key"; // local runs only
 const api = client(key());
 const ids = ["living-room", "bathroom", "cloakroom"];
 const ask = async (jpeg: Buffer) => {

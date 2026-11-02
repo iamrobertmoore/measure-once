@@ -1,0 +1,12 @@
+# Never upload secrets or private working files with a deploy.
+.secrets
+.env*
+working
+answer-key
+fixtures
+secrets
+design/node_modules
+design/out
+public/_shots
+samples/*/source.mp4
+scripts/_*

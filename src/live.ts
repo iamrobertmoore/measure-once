@@ -3,7 +3,9 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 export const ROOT = process.cwd();
-export const key = () => process.env.MODEL_API_KEY || (existsSync(join(ROOT, ".secrets/meta_api_key")) ? readFileSync(join(ROOT, ".secrets/meta_api_key"), "utf8").trim() : "");
+// The key comes from the environment. The local server (never deployed) may point MODEL_API_KEY_FILE at a gitignored
+// file instead; hosted functions never name a key file, so a build can't bundle one.
+export const key = () => process.env.MODEL_API_KEY || (process.env.MODEL_API_KEY_FILE && existsSync(process.env.MODEL_API_KEY_FILE) ? readFileSync(process.env.MODEL_API_KEY_FILE, "utf8").trim() : "");
 
 export function loadSample(id: string) {
   if (!/^[a-z0-9-]+$/.test(id)) throw new Error("unknown sample");
