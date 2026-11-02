@@ -5,6 +5,8 @@ import type OpenAI from "openai";
 import sharp from "sharp";
 import { toFile } from "openai";
 import { client, segmentImage, segmentVideo, fullMask, type SamObject } from "./sam.ts";
+import { pickSpan } from "./span.ts";
+import { loadRGB } from "./measure.ts";
 import { measureStill, measureWithMasks, loadRGB, WINDOW_PROMPTS, type StillResult } from "./measure.ts";
 import { apply, invert, summarise, type Pt } from "./geometry.ts";
 import { sizeOptions, type Option } from "./catalogue.ts";
@@ -22,6 +24,7 @@ export type Result = {
   framesUsed?: number;
   hands: HandPoint[];
   handSpan?: { leftPastFrameMm: number; rightPastFrameMm: number } | null;
+  span?: { adopted: boolean; widthMm: number; frameWidthMm: number; why: string; left: string; right: string; edges: any[]; votes: string };
   transcript: string;
   options: Option[];
   draft?: Draft;
@@ -65,7 +68,7 @@ export async function run(apiKey: string, input: { frames: Buffer[]; wav?: Buffe
   return finish(api, apiKey, { per, frameIdx: input.frames.map((_, i) => i), frameBufs: input.frames, hands, transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0 });
 }
 
-async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; frameIdx: number[]; frameBufs: Buffer[]; hands: SamObject[][]; transcript: string; buyerMessage?: string; diameterMm?: number; draft?: boolean; timings: Record<string, number>; t0: number }): Promise<Result> {
+async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; frameIdx: number[]; frameBufs: Buffer[]; hands: SamObject[][]; transcript: string; buyerMessage?: string; diameterMm?: number; draft?: boolean; timings: Record<string, number>; t0: number; minFrames?: number }): Promise<Result> {
   const { per, frameIdx, transcript, timings } = a;
   const diameter = a.diameterMm ?? 35;
   const sizes = await Promise.all(frameIdx.map((i) => sharp(a.frameBufs[i]).metadata()));
@@ -74,7 +77,8 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
     : { index: frameIdx[k], width: sizes[k].width!, height: sizes[k].height!, ok: false, reason: r.reason, sheet: (r as any).sheet, window: (r as any).window });
   let good = per.map((r, k) => ({ r, i: frameIdx[k] })).filter((x): x is { r: Extract<StillResult, { ok: true }>; i: number } => x.r.ok);
   const result: Result = { ok: false, frames, hands: [], transcript, options: [], timingsMs: timings, models: [] };
-  if (good.length < 3) {
+  const minF = a.minFrames ?? 3;
+  if (good.length < minF) {
     const counts = new Map<string, number>(); per.filter((r) => !r.ok).forEach((r: any) => counts.set(r.reason, (counts.get(r.reason) ?? 0) + 1));
     result.reason = [...counts.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] ?? "not enough clear frames";
     timings.totalMs = t() - a.t0;
@@ -84,13 +88,45 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
   const med0 = summarise(good.map((g) => g.r.widthMm)).median;
   const mad = summarise(good.map((g) => Math.abs(g.r.widthMm - med0))).median;
   good = good.filter((g) => Math.abs(g.r.widthMm - med0) <= Math.max(15, 2.5 * 1.4826 * mad));
-  if (good.length < 3) { result.reason = "not enough frames agree; hold the phone steadier"; timings.totalMs = t() - a.t0; return result; }
+  if (good.length < minF) { result.reason = "not enough frames agree; hold the phone steadier"; timings.totalMs = t() - a.t0; return result; }
   const w = summarise(good.map((g) => g.r.widthMm));
   const hs = good.map((g) => g.r.heightMm).filter((v): v is number => v !== null);
-  if (w.iqr > 25) { result.reason = `frames disagree by ${Math.round(w.iqr)} mm; hold the phone steadier`; timings.totalMs = t() - a.t0; return result; }
+  if (w.iqr > Math.max(25, 0.015 * w.median)) { result.reason = `frames disagree by ${Math.round(w.iqr)} mm; hold the phone steadier`; timings.totalMs = t() - a.t0; return result; }
   const hero = good.reduce((x, y) => (Math.abs(y.r.widthMm - w.median) < Math.abs(x.r.widthMm - w.median) ? y : x));
   Object.assign(result, { ok: true, widthMm: w.median, heightMm: hs.length ? summarise(hs).median : null, spreadMm: w.iqr, framesUsed: good.length, heroFrame: hero.i });
   frames.forEach((f) => { if (f.ok && !good.some((g) => g.i === f.index)) { (f as any).outlier = true; } });
+
+  // Which edges does the pole span? Muse Spark picks among edges the code found on the wall plane (the measured
+  // outline, or something wider such as a recess opening); the code measures between them. Three frames vote.
+  const t2 = t();
+  const voters = [hero, ...good.filter((g) => g !== hero)].slice(0, 3);
+  const picks = (await Promise.all(voters.map(async (g) => {
+    const buf = a.frameBufs[g.i];
+    const p = await pickSpan(api, buf, await loadRGB(buf), g.r.G, g.r.wall, g.r.heightMm !== null, transcript).catch(() => null);
+    return p ? { g, p } : null;
+  }))).filter((x): x is NonNullable<typeof x> => !!x);
+  timings.spanMs = t() - t2;
+  const wider = picks.filter((x) => x.p.widthMm > x.g.r.widthMm + Math.max(30, 0.03 * x.g.r.widthMm));
+  const sameAsOutline = picks.filter((x) => Math.abs(x.p.widthMm - x.g.r.widthMm) < 15);
+  if (picks.length) result.models.push("muse-spark-1.3 (which edges)");
+  // Adopt a wider span only when the frames agree on it: the largest group of wider picks within 25 mm of each other,
+  // at least two frames (one, if only one frame could be asked), and more than the frames that said "the outline".
+  const groups = wider.map((x) => wider.filter((y) => Math.abs(y.p.widthMm - x.p.widthMm) <= 25));
+  const agree = groups.sort((u, v) => v.length - u.length)[0] ?? [];
+  if (agree.length >= Math.min(2, picks.length) && agree.length > sameAsOutline.length) {
+    const spanW = summarise(agree.map((x) => x.p.widthMm)).median;
+    const hp = agree.find((x) => x.g === hero) ?? agree[0];
+    const hf: any = frames.find((f) => f.index === hp.g.i);
+    hf.frameWall = hf.wall; hf.wall = { ...hf.wall, x0: hp.p.leftMm, w: hp.p.widthMm };
+    if (hp.g !== hero) result.heroFrame = hp.g.i;
+    result.span = { adopted: true, widthMm: spanW, frameWidthMm: w.median, why: hp.p.why, left: hp.p.left, right: hp.p.right, edges: hp.p.edges, votes: `${agree.length} of ${picks.length}` };
+    result.widthMm = spanW;
+  } else if (picks.length) {
+    const hp = picks.find((x) => x.g === hero) ?? picks[0];
+    result.span = { adopted: false, widthMm: hp.p.widthMm, frameWidthMm: w.median, why: hp.p.why, left: hp.p.left, right: hp.p.right, edges: hp.p.edges, votes: sameAsOutline.length ? `${sameAsOutline.length} of ${picks.length} agreed with the outline` : `the ${picks.length} frames didn't agree on a wider opening` };
+  }
+  const sizingMm = result.widthMm!;
+  const heroWall: any = (frames.find((f) => f.index === result.heroFrame) as any).wall;
 
   // Hands: project each fingertip onto the wall with the nearest measured frame's geometry. A hand is in front of
   // the wall, so this is the point it covers from the camera: the buyer's intent, not a measurement.
@@ -104,17 +140,17 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
     }
   });
   if (result.hands.length >= 2) {
-    const wall = hero.r.wall, left = wall.x0, right = wall.x0 + wall.w;
+    const wall = heroWall, left = wall.x0, right = wall.x0 + wall.w;
     const xs = result.hands.map((h) => h.wallX);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     result.handSpan = minX < left + 50 && maxX > right - 50 ? { leftPastFrameMm: left - minX, rightPastFrameMm: maxX - right } : null;
   }
 
-  result.options = sizeOptions(w.median, diameter);
+  result.options = sizeOptions(sizingMm, diameter);
   if (a.draft !== false) {
     const t1 = t();
     const hs2 = result.handSpan ? [Math.round(result.handSpan.leftPastFrameMm / 10), Math.round(result.handSpan.rightPastFrameMm / 10)] as [number, number] : undefined;
-    try { result.draft = await draftReply(api, { transcript, buyerMessage: a.buyerMessage, frameWidthMm: w.median, spreadMm: w.iqr, options: result.options, diameterMm: diameter, handSpanCm: hs2 }); result.models.push("muse-spark-1.3"); }
+    try { result.draft = await draftReply(api, { transcript, buyerMessage: a.buyerMessage, frameWidthMm: sizingMm, windowFrameMm: result.span?.adopted ? w.median : undefined, spreadMm: w.iqr, options: result.options, diameterMm: diameter, handSpanCm: hs2 }); result.models.push("muse-spark-1.3"); }
     catch (e: any) { result.reason = `reply draft failed: ${e.message}`; }
     timings.draftMs = t() - t1;
   }
@@ -135,7 +171,7 @@ async function sharpness(jpeg: Buffer): Promise<number> {
  * are segmented on the sharpest frames (image calls, which give the cleanest edges); Voice Transcribe hears the
  * request; the geometry runs on frames with no hand in the way.
  */
-export async function runClip(apiKey: string, input: { mp4: Buffer; frames: Buffer[]; fps: number; wav?: Buffer; buyerMessage?: string; diameterMm?: number; draft?: boolean; maxFrames?: number }): Promise<Result & { fps: number }> {
+export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buffer[]; fps: number; wav?: Buffer; buyerMessage?: string; diameterMm?: number; draft?: boolean; maxFrames?: number; paper?: "A4" | "Letter"; minFrames?: number }): Promise<Result & { fps: number }> {
   const api: OpenAI = client(apiKey);
   const timings: Record<string, number> = {};
   const t0 = t();
@@ -148,17 +184,17 @@ export async function runClip(apiKey: string, input: { mp4: Buffer; frames: Buff
     let best = lo; for (let j = lo; j < hi && j < n; j++) if (sharpAll[j] > sharpAll[best]) best = j;
     if (!picked.includes(best)) picked.push(best);
   }
-  const handsP = (async () => {
-    const file: any = await api.files.create({ file: await toFile(input.mp4, "clip.mp4", { type: "video/mp4" }), purpose: "user_data", expires_after: { anchor: "created_at", seconds: 3600 } } as any);
+  const handsP = !input.mp4 ? Promise.resolve([] as SamObject[]) : (async () => {
+    const file: any = await api.files.create({ file: await toFile(input.mp4!, "clip.mp4", { type: "video/mp4" }), purpose: "user_data", expires_after: { anchor: "created_at", seconds: 3600 } } as any);
     timings.uploadMs = t() - t0;
     const h = await segmentVideo(api, file.id, "hand");
     timings.handsMs = t() - t0;
     return h;
   })().catch((e) => { timings.handsFailed = 1; return [] as SamObject[]; });
-  // Hands are a nice-to-have (where the buyer pointed); never let a slow tracking call hold up the size.
+  // The hands say where the buyer pointed past the frame; the width itself never waits on a slow tracking call.
   const handsCapped = Promise.race([handsP, new Promise<SamObject[]>((res) => { setTimeout(() => { timings.handsTimedOut = 1; res([]); }, Number(process.env.HANDS_TIMEOUT_MS || 35000)).unref?.(); })]);
   const [per0, handT, transcript] = await Promise.all([
-    Promise.all(picked.map((i) => measureStill(api, input.frames[i]).catch((e): StillResult => ({ ok: false, reason: String(e?.message || e) })))),
+    Promise.all(picked.map((i) => measureStill(api, input.frames[i], input.paper).catch((e): StillResult => ({ ok: false, reason: String(e?.message || e) })))),
     handsCapped,
     input.wav ? transcribeWav(apiKey, input.wav).catch((e) => `(transcription failed: ${e.message})`) : Promise.resolve(""),
   ]);
@@ -166,12 +202,19 @@ export async function runClip(apiKey: string, input: { mp4: Buffer; frames: Buff
   // Measure the same thing in every frame: the window outline (frame, surround or wooden frame) most frames chose.
   // Re-measure every frame against each outline on its own; keep the widest outline (the outermost part of the window
   // on the wall, which the pole must clear) that measures in at least half the frames.
-  const only = (j: number) => per0.map((r) => { const m = (r as any).masks; return m ? measureWithMasks(m.rgb, m.sheets, m.wins.map((w: SamObject[], q: number) => (q === j ? w : [])), WINDOW_PROMPTS) : r; });
+  const only = (j: number) => per0.map((r) => { const m = (r as any).masks; return m ? measureWithMasks(m.rgb, m.sheets, m.wins.map((w: SamObject[], q: number) => (q === j ? w : [])), WINDOW_PROMPTS, input.paper) : r; });
   const variants = WINDOW_PROMPTS.map((_, j) => only(j));
   const okCount = Math.max(1, per0.filter((r) => r.ok).length);
   const scored = variants.map((v, j) => { const ws = v.filter((r) => r.ok).map((r: any) => r.widthMm); return { j, v, n: ws.length, med: ws.length ? summarise(ws).median : 0 }; })
-    .filter((x) => x.n >= Math.max(3, Math.ceil(okCount / 2)));
-  if (scored.length) { const pick = scored.sort((x, y) => y.med - x.med)[0]; per0.splice(0, per0.length, ...pick.v); timings.windowOutline = pick.j; }
+    .filter((x) => x.n >= Math.max(Math.min(3, input.minFrames ?? 3), Math.ceil(okCount / 2)));
+  // The widest reading wins only when it's clearly wider (over 2%) than the reading seen in the most frames;
+  // otherwise more frames beat a few millimetres, because the median of six beats the median of three.
+  if (scored.length) {
+    const most = [...scored].sort((x, y) => y.n - x.n || y.med - x.med)[0];
+    const widest = [...scored].sort((x, y) => y.med - x.med)[0];
+    const pick = widest.med > most.med * 1.02 ? widest : most;
+    per0.splice(0, per0.length, ...pick.v); timings.windowOutline = pick.j;
+  }
   const byFrame = (objs: SamObject[], i: number) => objs.filter((o) => o.frame === i);
   // Frames where a hand covers the sheet or one of the window's sides are set aside when enough clear frames
   // measured. A hand elsewhere in the picture (pointing at the top of the window, say) doesn't touch the numbers.
@@ -186,9 +229,9 @@ export async function runClip(apiKey: string, input: { mp4: Buffer; frames: Buff
   };
   const handFree = picked.map((i, k) => ({ i, k })).filter(({ i, k }) => per0[k].ok && !byFrame(handT, i).some((o) => o.confidence >= 0.5 && inTheWay(o, per0[k])));
   let per = per0, idx = picked;
-  if (handFree.length >= 3) { per = handFree.map((x) => per0[x.k]); idx = handFree.map((x) => x.i); timings.framesWithHandsSetAside = picked.length - handFree.length; }
-  const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0 });
-  r.models = ["sam-3.1", "sam-3.1 (video tracking: hands)", "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.startsWith("muse-spark"))];
+  if (handFree.length >= 4) { per = handFree.map((x) => per0[x.k]); idx = handFree.map((x) => x.i); timings.framesWithHandsSetAside = picked.length - handFree.length; }
+  const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0, minFrames: input.minFrames });
+  r.models = ["sam-3.1", ...(input.mp4 ? ["sam-3.1 (video tracking: hands)"] : []), "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.startsWith("muse-spark"))];
   return { ...r, fps: input.fps };
 }
 

@@ -2,7 +2,7 @@
 import sharp from "sharp";
 import type OpenAI from "openai";
 import { segmentImage, fullMask, type SamObject } from "./sam.ts";
-import { quadCorners, snapToImageEdges, jointFitEdges, edgeSamples, hull, boundary, quadFromHull, apply, orderCorners, fitLine, intersect, type Pt } from "./geometry.ts";
+import { sheetPaper, quadCorners, snapToImageEdges, jointFitEdges, edgeSamples, hull, boundary, quadFromHull, apply, orderCorners, fitLine, intersect, type Pt } from "./geometry.ts";
 
 export type Gray = { data: Float32Array; W: number; H: number };
 export type RGB = { data: Uint8Array; W: number; H: number };
@@ -120,22 +120,22 @@ function quadInImage(o: SamObject, W: number, H: number): Pt[] {
 }
 
 export type StillResult =
-  | { ok: true; widthMm: number; heightMm: number | null; rmsPx: number; sheet: Pt[]; window: Pt[]; sheetConf: number; windowConf: number; windowPrompt: string; G: number[]; wall: { x0: number; y0: number; w: number; h: number }; sheetTiltDeg: number; sidesUsed: number[] }
+  | { ok: true; widthMm: number; heightMm: number | null; rmsPx: number; sheet: Pt[]; window: Pt[]; sheetConf: number; windowConf: number; windowPrompt: string; G: number[]; wall: { x0: number; y0: number; w: number; h: number }; sheetTiltDeg: number; sidesUsed: number[]; paper: string }
   | { ok: false; reason: string; sheet?: Pt[]; window?: Pt[] };
 
 export const WINDOW_PROMPTS = ["window frame", "window surround", "wooden frame"];
 
-export async function measureStill(api: OpenAI, jpeg: Buffer): Promise<StillResult> {
+export async function measureStill(api: OpenAI, jpeg: Buffer, paperHint?: "A4" | "Letter"): Promise<StillResult> {
   const rgb = await loadRGB(jpeg);
   const url = `data:image/jpeg;base64,${jpeg.toString("base64")}`;
   const [sheets, ...wins] = await Promise.all([segmentImage(api, url, "sheet of paper"), ...WINDOW_PROMPTS.map((p) => segmentImage(api, url, p))]);
-  const r = measureWithMasks(rgb, sheets, wins, WINDOW_PROMPTS);
+  const r = measureWithMasks(rgb, sheets, wins, WINDOW_PROMPTS, paperHint);
   Object.defineProperty(r, "masks", { value: { rgb, sheets, wins }, enumerable: false }); // kept for re-measuring, not serialised
   return r;
 }
 
 /** The measuring step given SAM's masks for one frame (from image calls, or from one video-tracking call per prompt). */
-export function measureWithMasks(rgb: RGB, sheets: SamObject[], wins: SamObject[][], prompts: string[]): StillResult {
+export function measureWithMasks(rgb: RGB, sheets: SamObject[], wins: SamObject[][], prompts: string[], paperHint?: "A4" | "Letter"): StillResult {
   const { W, H } = rgb;
 
   const m = 3;
@@ -168,11 +168,12 @@ export function measureWithMasks(rgb: RGB, sheets: SamObject[], wins: SamObject[
   if (bottomCut || sides[2].length < 24) sides[2] = []; // bottom hidden or cluttered: width doesn't need it
   if (topCut || sides[0].length < 12) sides[0] = [];
   if (sides[1].length < 12 || sides[3].length < 12) return { ok: false, reason: "window edges unclear", sheet, window: winRough };
-  const fit = jointFitEdges(sheet, sides, winRough);
+  const sp = sheetPaper(sheet, paperHint);
+  const fit = jointFitEdges(sheet, sides, winRough, sp.portrait, Infinity, sp.paper);
   if (!Number.isFinite(fit.widthMm) || fit.rmsPx > 3) return { ok: false, reason: `geometry inconsistent (rms ${fit.rmsPx.toFixed(1)} px)`, sheet, window: winRough };
   const r = fit.window;
   const winDrawn = [{ x: r.x0, y: r.y0 }, { x: r.x0 + r.w, y: r.y0 }, { x: r.x0 + r.w, y: r.y0 + r.h }, { x: r.x0, y: r.y0 + r.h }].map((p) => apply(fit.G, p));
-  return { ok: true, widthMm: fit.widthMm, heightMm: fit.heightMm, rmsPx: fit.rmsPx, sheet, window: winDrawn, sheetConf: sheetObj.confidence, windowConf: winObj.confidence, windowPrompt: best.prompt, G: fit.G, wall: r, sheetTiltDeg: fit.sheetTiltDeg, sidesUsed: fit.sidesUsed };
+  return { ok: true, widthMm: fit.widthMm, heightMm: fit.heightMm, rmsPx: fit.rmsPx, sheet, window: winDrawn, sheetConf: sheetObj.confidence, windowConf: winObj.confidence, windowPrompt: best.prompt, G: fit.G, wall: r, sheetTiltDeg: fit.sheetTiltDeg, sidesUsed: fit.sidesUsed, paper: sp.paper.name! };
 }
 
 /** Debug overlay: sheet in green, window in amber. */
