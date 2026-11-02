@@ -26,7 +26,7 @@ export async function draftReply(api: OpenAI, input: {
     measurement_spread_mm: Math.round(input.spreadMm),
     options: input.options.map((o) => ({
       stock_length_cm: o.stockCm, cut_to_cm: o.cutToMm ? o.cutToMm / 10 : null, cut_each_end_cm: +(o.cutPerEndMm / 10).toFixed(1),
-      past_frame_each_side_cm: +(o.overhangEachSideMm / 10).toFixed(1), two_piece: o.twoPiece, fit: o.fit, note: o.note,
+      past_frame_each_side_cm: +(o.overhangEachSideMm / 10).toFixed(1), two_piece: o.twoPiece, brackets: o.brackets, fit: o.fit, note: o.note,
     })),
     diameter_mm: input.diameterMm,
     finial_adds_each_end_cm: (catalogue.finialMm[input.diameterMm] ?? 90) / 10,
@@ -68,7 +68,7 @@ export function checkNumbers(reply: string, facts: any) {
   const add = (v: number | null | undefined) => { if (v === null || v === undefined) return; for (const x of [v, v * 10, v / 10]) { allowed.add(String(+x.toFixed(1))); allowed.add(String(Math.round(x))); } };
   if (facts.buyer_pointed_past_frame_cm) { add(facts.buyer_pointed_past_frame_cm.left); add(facts.buyer_pointed_past_frame_cm.right); }
   add(facts.measured_frame_width_cm); add(facts.measurement_spread_mm); add(facts.diameter_mm); add(facts.finial_adds_each_end_cm);
-  for (const o of facts.options) { add(o.stock_length_cm); add(o.cut_to_cm); add(o.cut_each_end_cm); add(o.past_frame_each_side_cm); }
+  for (const o of facts.options) { add(o.brackets); add(o.stock_length_cm); add(o.cut_to_cm); add(o.cut_each_end_cm); add(o.past_frame_each_side_cm); }
   for (const n of [1, 2, 3, 4, 10, 15, 20, 890563497]) allowed.add(String(n)); // counts, the house overhang band, the listing id
   const found = reply.match(/\d+(?:\.\d+)?/g) ?? [];
   const bad = found.filter((n) => !allowed.has(String(+n)));

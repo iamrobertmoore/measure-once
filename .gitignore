@@ -1,12 +1,13 @@
 node_modules/
 .secrets/
 .env*
+!.env.example
 working/
 secrets/
 answer-key/
-fixtures/private/
+fixtures/
 .vercel/
-fixtures/*.jpg
 design/node_modules/
 design/out/
 design/scene.jpg
+public/_shots/

@@ -1,0 +1,60 @@
+{
+ "scoredAt": "2026-11-02T17:40:32.933Z",
+ "rows": [
+  {
+   "window": "living room (shutters)",
+   "tape_mm": 2220,
+   "measured_mm": 2157,
+   "error_mm": -63,
+   "spread_mm": 2.2,
+   "frames": 3,
+   "note": ""
+  },
+  {
+   "window": "bathroom (wooden surround)",
+   "tape_mm": 1190,
+   "measured_mm": 1195,
+   "error_mm": 5,
+   "spread_mm": 17.4,
+   "frames": 5,
+   "note": ""
+  },
+  {
+   "window": "small bathroom window in recess",
+   "tape_mm": 590,
+   "measured_mm": 462,
+   "error_mm": -128,
+   "spread_mm": 0.4,
+   "frames": 4,
+   "note": ""
+  }
+ ],
+ "abstain": [
+  {
+   "window": "living room shutters",
+   "expected": "refuse",
+   "got": "refused: not enough clear frames",
+   "pass": true
+  },
+  {
+   "window": "kitchen",
+   "expected": "refuse",
+   "got": "refused: sheet not flat or cut off",
+   "pass": true
+  },
+  {
+   "window": "kitchen",
+   "expected": "refuse",
+   "got": "refused: sheet not flat or cut off",
+   "pass": true
+  }
+ ],
+ "summary": {
+  "measured": 3,
+  "of": 3,
+  "medianAbsErrorMm": 63,
+  "maxAbsErrorMm": 128,
+  "refusedCorrectly": 3,
+  "refusalsExpected": 3
+ }
+}

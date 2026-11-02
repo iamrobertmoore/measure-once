@@ -7,7 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsx test/synthetic.ts && tsx test/tilt.ts && tsx test/edges.ts && tsx test/image.ts && tsx test/catalogue.ts",
+    "start": "tsx server.ts",
+    "measure": "tsx scripts/measure.ts"
   },
   "keywords": [],
   "author": "",

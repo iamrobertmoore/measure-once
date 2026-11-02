@@ -2,7 +2,8 @@
 export const catalogue = {
   shop: "creationsfromrob",
   listing: "https://www.etsy.com/listing/890563497",
-  lengthsCm: [150, 180, 200, 240, 300, 360],
+  lengthsCm: [120, 150, 180, 200, 240, 300, 360],
+  bracketsFor: (cm: number) => (cm >= 200 ? 3 : 2), // two up to 180 cm; three from 200 cm (and a centre bracket under the join from 240 cm)
   diametersMm: [28, 35, 50],
   twoPieceFromCm: 240, // ships in two pieces with a join and a centre bracket
   finialMm: { 28: 90, 35: 90, 50: 117 } as Record<number, number>, // added per end
@@ -20,6 +21,7 @@ export type Option = {
   cutPerEndMm: number;
   overhangEachSideMm: number;
   twoPiece: boolean;
+  brackets: number;
   fit: "ideal" | "tight" | "too short";
   overallWithFinialsMm: number;
   note: string;
@@ -46,7 +48,7 @@ export function sizeOptions(frameWidthMm: number, diameterMm = 35, wallEachSideM
     let note = cutTo ? `cut ${Math.round((Lmm - len) / 2 / 10 * 10) / 10} cm off each end` : "use as supplied";
     if (fit === "tight") note += "; a little tight for curtains to clear the glass";
     if (wallEachSideMm !== undefined && over + fin > wallEachSideMm) note += "; finials won't clear the wall each side";
-    out.push({ stockCm: L, cutToMm: cutTo, cutPerEndMm: (Lmm - len) / 2, overhangEachSideMm: over, twoPiece: L >= catalogue.twoPieceFromCm, fit, overallWithFinialsMm: overall, note });
+    out.push({ stockCm: L, cutToMm: cutTo, cutPerEndMm: (Lmm - len) / 2, overhangEachSideMm: over, twoPiece: L >= catalogue.twoPieceFromCm, brackets: catalogue.bracketsFor(L), fit, overallWithFinialsMm: overall, note });
   }
   // Cutting a longer stock length down to the same target only wastes pole: keep the shortest one that works.
   const firstCut = out.find((o) => o.cutToMm !== null);
