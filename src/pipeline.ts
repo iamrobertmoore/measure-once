@@ -155,9 +155,11 @@ export async function runClip(apiKey: string, input: { mp4: Buffer; frames: Buff
     timings.handsMs = t() - t0;
     return h;
   })().catch((e) => { timings.handsFailed = 1; return [] as SamObject[]; });
+  // Hands are a nice-to-have (where the buyer pointed); never let a slow tracking call hold up the size.
+  const handsCapped = Promise.race([handsP, new Promise<SamObject[]>((res) => { setTimeout(() => { timings.handsTimedOut = 1; res([]); }, Number(process.env.HANDS_TIMEOUT_MS || 35000)).unref?.(); })]);
   const [per0, handT, transcript] = await Promise.all([
     Promise.all(picked.map((i) => measureStill(api, input.frames[i]).catch((e): StillResult => ({ ok: false, reason: String(e?.message || e) })))),
-    handsP,
+    handsCapped,
     input.wav ? transcribeWav(apiKey, input.wav).catch((e) => `(transcription failed: ${e.message})`) : Promise.resolve(""),
   ]);
   timings.measureMs = t() - t0;
