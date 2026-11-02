@@ -1,0 +1,2 @@
+[{"js": "window.scrollTo(0,0); window.__hero.seek(0); window.__hero.play();", "wait": 6600},
+ {"js": "", "wait": 1800}]
