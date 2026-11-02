@@ -33,6 +33,9 @@ export async function draftReply(api: OpenAI, input: {
     listing: catalogue.listing,
     ...(input.handSpanCm ? { buyer_pointed_past_frame_cm: { left: input.handSpanCm[0], right: input.handSpanCm[1] } } : {}),
   };
+  let lastErr: any;
+  for (let attempt = 0; attempt < 2; attempt++) {
+  try {
   const res: any = await api.responses.create({
     model: input.model ?? "muse-spark-1.3",
     max_output_tokens: 4000,
@@ -50,9 +53,13 @@ one line on the alternative if there is one, and one line on finial clearance. U
     text: { format: { type: "json_object" } },
   } as any);
   const text = res.output_text ?? res.output?.flatMap((o: any) => o.content ?? []).map((c: any) => c.text ?? "").join("") ?? "";
-  const d = JSON.parse(text) as Draft;
+  const jsonText = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+  const d = JSON.parse(jsonText) as Draft;
   checkNumbers(d.reply, facts);
   return d;
+  } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
 }
 
 /** Every number in the reply must be one we supplied (cm or mm forms). Throws on anything invented. */

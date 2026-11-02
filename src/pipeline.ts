@@ -83,7 +83,7 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
   // Drop frames that disagree with the rest (a hand over an edge, motion blur): keep within 2.5 MADs (min 8 mm).
   const med0 = summarise(good.map((g) => g.r.widthMm)).median;
   const mad = summarise(good.map((g) => Math.abs(g.r.widthMm - med0))).median;
-  good = good.filter((g) => Math.abs(g.r.widthMm - med0) <= Math.max(8, 2.5 * 1.4826 * mad));
+  good = good.filter((g) => Math.abs(g.r.widthMm - med0) <= Math.max(15, 2.5 * 1.4826 * mad));
   if (good.length < 3) { result.reason = "not enough frames agree; hold the phone steadier"; timings.totalMs = t() - a.t0; return result; }
   const w = summarise(good.map((g) => g.r.widthMm));
   const hs = good.map((g) => g.r.heightMm).filter((v): v is number => v !== null);
@@ -131,46 +131,52 @@ async function sharpness(jpeg: Buffer): Promise<number> {
 }
 
 /**
- * The video path: one upload, one SAM 3.1 tracking call per thing we look for (the sheet, the window three ways,
- * the buyer's hands), each returning masks for every frame with identities kept. Then the geometry runs on the
- * sharpest frames where both the sheet and the window were tracked.
+ * The clip path. SAM 3.1 tracks the buyer's hands through the whole clip in one video call; the sheet and the window
+ * are segmented on the sharpest frames (image calls, which give the cleanest edges); Voice Transcribe hears the
+ * request; the geometry runs on frames with no hand in the way.
  */
 export async function runClip(apiKey: string, input: { mp4: Buffer; frames: Buffer[]; fps: number; wav?: Buffer; buyerMessage?: string; diameterMm?: number; draft?: boolean; maxFrames?: number }): Promise<Result & { fps: number }> {
   const api: OpenAI = client(apiKey);
   const timings: Record<string, number> = {};
   const t0 = t();
-  const file: any = await api.files.create({ file: await toFile(input.mp4, "clip.mp4", { type: "video/mp4" }), purpose: "user_data", expires_after: { anchor: "created_at", seconds: 3600 } } as any);
-  timings.uploadMs = t() - t0;
-  const t1 = t();
-  const prompts = ["sheet of paper", ...WINDOW_PROMPTS, "hand"];
-  const [tracks, transcript] = await Promise.all([
-    Promise.all(prompts.map((p) => segmentVideo(api, file.id, p).catch(() => [] as SamObject[]))),
+  // Pick the sharpest frames, spread across the clip.
+  const sharpAll = await Promise.all(input.frames.map((f) => sharpness(f)));
+  const want = input.maxFrames ?? 8, n = input.frames.length;
+  const picked: number[] = [];
+  for (let k = 0; k < want; k++) {
+    const lo = Math.floor((k * n) / want), hi = Math.max(lo + 1, Math.floor(((k + 1) * n) / want));
+    let best = lo; for (let j = lo; j < hi && j < n; j++) if (sharpAll[j] > sharpAll[best]) best = j;
+    if (!picked.includes(best)) picked.push(best);
+  }
+  const handsP = (async () => {
+    const file: any = await api.files.create({ file: await toFile(input.mp4, "clip.mp4", { type: "video/mp4" }), purpose: "user_data", expires_after: { anchor: "created_at", seconds: 3600 } } as any);
+    timings.uploadMs = t() - t0;
+    const h = await segmentVideo(api, file.id, "hand");
+    timings.handsMs = t() - t0;
+    return h;
+  })().catch((e) => { timings.handsFailed = 1; return [] as SamObject[]; });
+  const [per0, handT, transcript] = await Promise.all([
+    Promise.all(picked.map((i) => measureStill(api, input.frames[i]).catch((e): StillResult => ({ ok: false, reason: String(e?.message || e) })))),
+    handsP,
     input.wav ? transcribeWav(apiKey, input.wav).catch((e) => `(transcription failed: ${e.message})`) : Promise.resolve(""),
   ]);
-  timings.samMs = t() - t1;
-  api.files.del?.(file.id).catch?.(() => {});
+  timings.measureMs = t() - t0;
+  // Measure the same thing in every frame: the window outline (frame, surround or wooden frame) most frames chose.
+  // Re-measure every frame against each outline on its own; keep the widest outline (the outermost part of the window
+  // on the wall, which the pole must clear) that measures in at least half the frames.
+  const only = (j: number) => per0.map((r) => { const m = (r as any).masks; return m ? measureWithMasks(m.rgb, m.sheets, m.wins.map((w: SamObject[], q: number) => (q === j ? w : [])), WINDOW_PROMPTS) : r; });
+  const variants = WINDOW_PROMPTS.map((_, j) => only(j));
+  const okCount = Math.max(1, per0.filter((r) => r.ok).length);
+  const scored = variants.map((v, j) => { const ws = v.filter((r) => r.ok).map((r: any) => r.widthMm); return { j, v, n: ws.length, med: ws.length ? summarise(ws).median : 0 }; })
+    .filter((x) => x.n >= Math.max(3, Math.ceil(okCount / 2)));
+  if (scored.length) { const pick = scored.sort((x, y) => y.med - x.med)[0]; per0.splice(0, per0.length, ...pick.v); timings.windowOutline = pick.j; }
   const byFrame = (objs: SamObject[], i: number) => objs.filter((o) => o.frame === i);
-  const sheetT = tracks[0], winT = tracks.slice(1, 1 + WINDOW_PROMPTS.length), handT = tracks[tracks.length - 1];
-
-  // Candidate frames: sheet and a window both tracked. Take the sharpest, spread across the clip.
-  const t2 = t();
-  const cand = input.frames.map((_, i) => i).filter((i) => byFrame(sheetT, i).length && winT.some((w) => byFrame(w, i).length));
-  const sharp_ = await Promise.all(cand.map((i) => sharpness(input.frames[i])));
-  const want = input.maxFrames ?? 10;
-  const picked: number[] = [];
-  for (let k = 0; k < want && cand.length; k++) {
-    const lo = Math.floor((k * cand.length) / want), hi = Math.max(lo + 1, Math.floor(((k + 1) * cand.length) / want));
-    let best = lo; for (let j = lo; j < hi && j < cand.length; j++) if (sharp_[j] > sharp_[best]) best = j;
-    if (!picked.includes(cand[best])) picked.push(cand[best]);
-  }
-  const per = await Promise.all(picked.map(async (i) => {
-    try { const rgb = await loadRGB(input.frames[i]); return measureWithMasks(rgb, byFrame(sheetT, i), winT.map((w) => byFrame(w, i)), WINDOW_PROMPTS); }
-    catch (e: any) { return { ok: false, reason: String(e?.message || e) } as StillResult; }
-  }));
-  timings.geometryMs = t() - t2;
-  // Reuse the frame-path logic for aggregation, hands and drafting.
-  const r = await finish(api, apiKey, { per, frameIdx: picked, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0 });
-  r.models = ["sam-3.1 (video tracking)", "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.startsWith("muse-spark"))];
+  // Frames with a hand in view are set aside when enough hand-free frames measured.
+  const handFree = picked.map((i, k) => ({ i, k })).filter(({ i, k }) => per0[k].ok && !byFrame(handT, i).some((o) => o.confidence >= 0.5));
+  let per = per0, idx = picked;
+  if (handFree.length >= 3) { per = handFree.map((x) => per0[x.k]); idx = handFree.map((x) => x.i); timings.framesWithHandsSetAside = picked.length - handFree.length; }
+  const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0 });
+  r.models = ["sam-3.1", "sam-3.1 (video tracking: hands)", "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.startsWith("muse-spark"))];
   return { ...r, fps: input.fps };
 }
 

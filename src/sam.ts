@@ -74,6 +74,9 @@ async function segmentImageOnce(api: OpenAI, imageDataUrl: string, phrase: strin
 }
 
 export async function segmentVideo(api: OpenAI, fileId: string, phrase: string): Promise<SamObject[]> {
+  return limited(() => segmentVideoOnce(api, fileId, phrase));
+}
+async function segmentVideoOnce(api: OpenAI, fileId: string, phrase: string): Promise<SamObject[]> {
   const stream: any = await api.responses.create({
     model: "sam-3.1", stream: true,
     metadata: { mask_encoding: "lossless", include_confidence: "true" },

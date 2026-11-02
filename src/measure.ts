@@ -78,7 +78,9 @@ export async function measureStill(api: OpenAI, jpeg: Buffer): Promise<StillResu
   const rgb = await loadRGB(jpeg);
   const url = `data:image/jpeg;base64,${jpeg.toString("base64")}`;
   const [sheets, ...wins] = await Promise.all([segmentImage(api, url, "sheet of paper"), ...WINDOW_PROMPTS.map((p) => segmentImage(api, url, p))]);
-  return measureWithMasks(rgb, sheets, wins, WINDOW_PROMPTS);
+  const r = measureWithMasks(rgb, sheets, wins, WINDOW_PROMPTS);
+  Object.defineProperty(r, "masks", { value: { rgb, sheets, wins }, enumerable: false }); // kept for re-measuring, not serialised
+  return r;
 }
 
 /** The measuring step given SAM's masks for one frame (from image calls, or from one video-tracking call per prompt). */

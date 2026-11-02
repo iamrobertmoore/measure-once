@@ -10,7 +10,7 @@ const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 
 export type Prepared = { mp4: Buffer; frames: Buffer[]; wav?: Buffer; fps: number };
 
-export async function prepareClip(videoPath: string, fps = 3, maxSeconds = 15): Promise<Prepared> {
+export async function prepareClip(videoPath: string, fps = 3, maxSeconds = 30): Promise<Prepared> {
   const dir = await mkdtemp(join(tmpdir(), "mo-p-"));
   try {
     const mp4 = join(dir, "clip.mp4");
