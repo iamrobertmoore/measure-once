@@ -14,6 +14,7 @@ const state = {
   running: null, // id with a live run in flight
   poles: new Map(), // id -> { src, cap }
   compareFor: null, // id whose before/after pole photos are loaded
+  seller: "poles", // whose rules: "poles" (my shop) or "blinds" (the example roller blind catalogue); kept across clips
 };
 const YOURS = "yours";
 // The visitor's own window: what they picked, and where the run is up to.
@@ -67,9 +68,10 @@ const fixFor = (reason) =>
 
 function refilmDraft(reason, photos = false) {
   const f = fixFor(reason);
+  const then = state.seller === "blinds" ? "exactly what size of blind to order" : "exactly which pole to order and where to cut it";
   return (
     `Thanks for the ${photos ? "photos" : "video"}. I couldn't get a measurement I'd trust from this one, as ${f.problem}.\n` +
-    `Could you ${f.ask} and film it again for about 10 seconds? Then I can tell you exactly which pole to order and where to cut it.\n` +
+    `Could you ${f.ask} and film it again for about 10 seconds? Then I can tell you ${then}.\n` +
     `Best wishes, Rob`
   );
 }
@@ -141,6 +143,58 @@ function currentRun() {
   return id ? state.live.get(id) || state.runs.get(id) : null;
 }
 
+// ---------- whose rules: my pole, or the example roller blind ----------
+const hasBlinds = (run) => !!(run?.ok && run.blinds?.options?.length);
+// What this clip shows: the blind when it's picked and the run has blind sizes, otherwise my pole.
+const modeFor = (run) => (state.seller === "blinds" && hasBlinds(run) ? "blinds" : "poles");
+
+function renderSeller(run) {
+  const group = $("seller");
+  const measured = !!run?.ok;
+  const blindsOk = hasBlinds(run);
+  const mode = measured ? modeFor(run) : state.seller;
+  let why = "";
+  if (!measured) why = "Only for clips I could measure";
+  else if (!blindsOk) why = "This run has no blind sizes. Pick Roller blind and run it live again.";
+  group.classList.toggle("off", !measured);
+  group.title = why;
+  for (const b of group.querySelectorAll(".seg-btn")) {
+    const isBlind = b.dataset.seller === "blinds";
+    b.setAttribute("aria-pressed", String(b.dataset.seller === mode));
+    b.disabled = !measured || (isBlind && !blindsOk);
+    b.title = b.disabled ? why : "";
+  }
+  // the copy on the upload form: what the next run of your own window will be sized for
+  for (const b of $("trySeller").querySelectorAll(".seg-btn")) {
+    b.setAttribute("aria-pressed", String(b.dataset.seller === state.seller));
+    b.disabled = mine.busy;
+  }
+}
+
+function onSeller(e) {
+  const b = e.target.closest(".seg-btn");
+  if (!b || b.disabled) return;
+  const next = b.dataset.seller === "blinds" ? "blinds" : "poles";
+  if (next === state.seller && b.getAttribute("aria-pressed") === "true") return;
+  state.seller = next;
+  const id = state.current;
+  const run = currentRun();
+  if (!run || (id === YOURS && $("main").classList.contains("trying"))) {
+    renderSeller(run);
+    return;
+  }
+  setSam(false, true);
+  renderSeller(run);
+  renderFacts(run, id, true);
+  renderReply(run, id, true);
+  setupCompare(id, run);
+  hero.setMode(modeFor(run));
+  if (hero.img) $("heroCanvas").setAttribute("aria-label", heroLabel(run));
+  revealCompare();
+}
+$("seller").addEventListener("click", onSeller);
+$("trySeller").addEventListener("click", onSeller);
+
 // ---------- inbox ----------
 function renderList() {
   const ul = $("clipList");
@@ -197,6 +251,8 @@ async function select(id) {
     return;
   }
   hidePaneError();
+  renderSeller(run);
+  hero.mode = modeFor(run);
   renderAsk(run, id, changed);
   renderFacts(run, id);
   renderReply(run, id, changed);
@@ -324,6 +380,7 @@ function optionTitle(o) {
 function spanLine(run) {
   const sp = run.span;
   if (!sp || !run.ok) return "";
+  const spans = modeFor(run) === "blinds" ? "to size the blind from" : "the pole spans";
   const m = String(sp.votes || "").match(/(\d+) of (\d+)/);
   const votes = m ? `${m[1]} of ${m[2]} frame${m[2] === "1" ? "" : "s"}` : "";
   if (sp.adopted) {
@@ -338,11 +395,34 @@ function spanLine(run) {
     return `Opening on the wall: <b>${cm1(w)} cm</b>. Muse Spark picked lines ${esc(L)} and ${esc(R)} (${what}${votes ? ", " + votes : ""}); the window frame inside is ${cm1(sp.frameWidthMm)} cm.`;
   }
   if (/agreed with the outline/.test(sp.votes || "") && m)
-    return `Muse Spark checked which edges the pole spans and agreed with the measured outline (${votes}).`;
-  return `Muse Spark checked which edges the pole spans. ${esc(cap(sp.votes || "the frames didn't agree on a wider opening"))}, so I kept the measured outline.`;
+    return `Muse Spark checked which edges ${spans} and agreed with the measured outline (${votes}).`;
+  return `Muse Spark checked which edges ${spans}. ${esc(cap(sp.votes || "the frames didn't agree on a wider opening"))}, so I kept the measured outline.`;
 }
 
-function renderFacts(run, id) {
+// The blind sizes from the example catalogue, in place of my pole.
+function blindFacts(run) {
+  const opts = run.blinds.options;
+  const items = opts
+    .map((o, i) => {
+      const drop =
+        o.dropMm != null && o.dropMm > 0
+          ? `<p class="blind-drop">${cmClean(o.dropMm)} cm drop</p>`
+          : `<p class="blind-drop${i ? " muted" : " need"}">drop: measure the height (not in the clip)</p>`;
+      return `<li>
+        <p class="blind-fit"><i class="blindmark${i ? " plain" : ""}" aria-hidden="true"></i>${esc(cap(o.fit))}${i ? "" : `<span class="vh"> (on the drawing)</span>`}</p>
+        <p class="blind-size">${cm1(o.widthMm)} cm wide</p>
+        ${drop}
+        ${o.note ? `<p class="blind-note">${esc(cap(o.note))}.</p>` : ""}
+      </li>`;
+    })
+    .join("");
+  return `<div class="fact-block">
+    <p class="fact-label">The blind to order</p>
+    <ul class="blind-opts">${items}</ul>
+  </div>`;
+}
+
+function renderFacts(run, id, still = false) {
   const isLive = state.live.has(id);
   const el = $("facts");
   if (!run.ok) {
@@ -360,7 +440,8 @@ function renderFacts(run, id) {
   const alt = run.options?.[1];
   const spread = run.spreadMm != null ? (run.spreadMm < 1 ? "under 1 mm" : `${Math.round(run.spreadMm)} mm`) : null;
   const used = run.framesUsed || (run.frames || []).filter((f) => f.ok && !f.outlier).length;
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduce = still || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const blinds = modeFor(run) === "blinds";
   const opening = !!run.span?.adopted;
   const edge = opening ? "opening" : "frame";
   const sl = spanLine(run);
@@ -371,7 +452,8 @@ function renderFacts(run, id) {
     ${frameThumbs(run, id, isLive)}
     ${sl ? `<p class="fact-span">${sl}</p>` : ""}
   </div>`;
-  if (o) {
+  if (blinds) html += blindFacts(run);
+  if (o && !blinds) {
     const cut = o.cutToMm != null && o.cutPerEndMm > 0;
     html += `<div class="fact-block">
       <p class="fact-label">The pole I'd send</p>
@@ -381,7 +463,7 @@ function renderFacts(run, id) {
       <p class="fact-line muted">${o.twoPiece ? "Comes in two pieces with a centre joint. " : ""}${o.brackets ? `${o.brackets} brackets. ` : ""}Plus 9 cm finial each end.</p>
     </div>`;
   }
-  if (alt) {
+  if (alt && !blinds) {
     const note = (alt.note || "").split(";").slice(1).join(";").trim();
     html += `<div class="fact-block">
       <p class="fact-label">Also fits</p>
@@ -401,12 +483,20 @@ function renderReply(run, id, changed) {
   const ta = $("replyText");
   const sendBtn = $("sendBtn");
   const poleBtn = $("poleBtn");
+  const blinds = modeFor(run) === "blinds";
+  const draft = blinds ? run.blinds?.draft : run.draft;
   if (changed || state.live.has(id)) {
     if (run.ok) {
       $("replyLabel").textContent = "Draft reply, in your words";
-      $("replySub").textContent = "Muse Spark drafted this from the measuring code's numbers. Change anything you like before it goes.";
-      ta.value = run.draft?.reply || "";
-      ta.placeholder = run.draft ? "" : "No draft for this one yet. Write your reply here.";
+      $("replySub").textContent = blinds
+        ? "Muse Spark drafted this from the measuring code's numbers and the example blind catalogue. Change anything you like before it goes."
+        : "Muse Spark drafted this from the measuring code's numbers. Change anything you like before it goes.";
+      ta.value = draft?.reply || "";
+      ta.placeholder = draft
+        ? ""
+        : !blinds && hasBlinds(run)
+          ? "This run was sized for the roller blind, so there's no pole draft. Write your reply here, or run it live again with Curtain pole picked."
+          : "No draft for this one yet. Write your reply here.";
     } else {
       $("replyLabel").textContent = "Ask for a re-film";
       $("replySub").textContent = "There's no size to send yet, so this asks them to film it again.";
@@ -420,7 +510,7 @@ function renderReply(run, id, changed) {
     sendBtn.classList.remove("sent");
   }
   // follow-up questions the drafter suggests
-  const qs = run.ok ? run.draft?.questions || [] : [];
+  const qs = run.ok ? draft?.questions || [] : [];
   const box = $("replyQs");
   if (qs.length) {
     box.hidden = false;
@@ -449,11 +539,11 @@ function renderReply(run, id, changed) {
   }
   // The live painter works from a recorded clip's files, so it's there for the clips, not for a visitor's own window.
   const entry = state.samples.find((s) => s.id === id);
-  poleBtn.hidden = !run.ok || id === YOURS;
+  poleBtn.hidden = !run.ok || id === YOURS || blinds;
   poleBtn.disabled = false;
   poleBtn.textContent = entry?.pole ? "Paint the pole again, live" : "Show the pole on this window";
   const pole = state.poles.get(id);
-  if (pole && run.ok) showPole(pole);
+  if (pole && run.ok && !blinds) showPole(pole);
   else hidePole();
 }
 
@@ -506,6 +596,14 @@ function heroLabel(run) {
   if (!run.ok) return `Photo from the clip. ${fixFor(run.reason).fix}`;
   const o = run.options?.[0];
   const edge = run.span?.adopted ? "opening" : "frame";
+  if (modeFor(run) === "blinds") {
+    const b = run.blinds.options[0];
+    return (
+      `Front elevation drawn from the clip. The ${edge} is ${cm1(run.widthMm)} cm wide. ` +
+      `A ${cm1(b.widthMm)} cm roller blind, ${b.fit}, centred on the ${edge}` +
+      (b.dropMm ? `, with a ${cmClean(b.dropMm)} cm drop.` : `. The drop isn't in the clip, so I'd ask them to measure the height.`)
+    );
+  }
   return (
     `Front elevation drawn from the clip. The ${edge} is ${cm1(run.widthMm)} cm wide.` +
     (o ? ` ${optionTitle(o)}, centred 10 cm above the window, ${cm1(o.overhangEachSideMm)} cm past the ${edge} each side.` : "")
@@ -539,7 +637,7 @@ function setupCompare(id, run) {
   el.classList.remove("shown");
   el.hidden = true;
   const entry = state.samples.find((s) => s.id === id);
-  if (!entry?.pole || !run?.ok) {
+  if (!entry?.pole || !run?.ok || modeFor(run) === "blinds") {
     state.compareFor = null;
     return;
   }
@@ -626,7 +724,7 @@ $("liveBtn").addEventListener("click", async () => {
   tick();
   const timer = setInterval(tick, 500);
   try {
-    const data = await post("/api/run", { sample: id });
+    const data = await post("/api/run", { sample: id, seller: state.seller });
     const run = data.run || data;
     if (!run || typeof run !== "object" || !("ok" in run)) throw new ApiError("The live run came back without a result.");
     run.id = run.id || id;
@@ -772,6 +870,7 @@ function renderTry() {
   for (const id of ["tryFile", "tryCam", "tryPaper"]) $(id).disabled = busy;
   $("tryDrop").querySelectorAll(".btn").forEach((b) => b.classList.toggle("is-disabled", busy));
   $("tryGo").disabled = busy || !mine.files.length;
+  renderSeller(state.current === YOURS ? state.runs.get(YOURS) : currentRun());
   $("tryGo").textContent = busy ? "Measuring" : "Measure my window";
   const ch = $("tryChosen");
   if (!ch.classList.contains("err")) {
@@ -849,7 +948,7 @@ function uploadSteps(withSound) {
     [0, "Sending the frames"],
     [2, withSound ? "SAM 3.1 is finding the sheet and the window, and Muse Voice Transcribe is listening" : "SAM 3.1 is finding the sheet and the window"],
     [9, "Working out millimetres"],
-    [12, "Muse Spark is picking which edges the pole spans"],
+    [12, state.seller === "blinds" ? "Muse Spark is picking which edges to size the blind from" : "Muse Spark is picking which edges the pole spans"],
     [27, "Muse Spark is drafting the reply"],
     [62, "Nearly there"],
   ];
@@ -934,6 +1033,7 @@ async function measureMine() {
     if (wav) fd.append("audio", wav, "audio.wav");
     fd.append("paper", $("tryPaper").value);
     fd.append("kind", kind);
+    fd.append("seller", state.seller);
     mine.steps = uploadSteps(!!wav);
     mine.steps[0][1] = `Sending ${blobs.length} frame${blobs.length === 1 ? "" : "s"}${wav ? " and the sound" : ""}, ${mb(total)}`;
     mine.sentAt = performance.now();

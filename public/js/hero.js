@@ -97,6 +97,7 @@ export class Hero {
     this.tl = TL;
     this.paper = { ...A4 };
     this.samView = false;
+    this.mode = "poles"; // whose rules the drawing shows: my poles, or the example roller blind
     this.t = this.tl.end;
     this.raf = 0;
     this.token = 0;
@@ -136,7 +137,10 @@ export class Hero {
     this.src = null;
     this.frame = pickFrame(run);
     const f = this.frame;
-    this.geo = !!(run.ok && f && Array.isArray(f.G) && f.G.length === 9 && f.wall && (run.options || []).length);
+    this.geo = !!(
+      run.ok && f && Array.isArray(f.G) && f.G.length === 9 && f.wall &&
+      ((run.options || []).length || (run.blinds?.options || []).length)
+    );
     this.paper = paperOf(f);
     const sp = run.span;
     this.span = this.geo && sp && Array.isArray(sp.edges) && sp.edges.length >= 2 && f.index === run.heroIndex ? sp : null;
@@ -149,6 +153,23 @@ export class Hero {
   stop() {
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
+  }
+
+  // The blind to draw, when the drawing is showing the roller blind and the run has one.
+  get blindOpt() {
+    return this.mode === "blinds" ? this.run?.blinds?.options?.[0] || null : null;
+  }
+
+  // Switch between my pole and the example blind: jump to the finished drawing rather than replaying it.
+  setMode(mode) {
+    const next = mode === "blinds" ? "blinds" : "poles";
+    const same = next === this.mode;
+    this.mode = next;
+    if (same || !this.img) return;
+    this.stop();
+    this.samView = false;
+    this.t = this.tl.end;
+    this.draw();
   }
 
   play() {
@@ -223,9 +244,11 @@ export class Hero {
     if (!this.geo) return;
 
     const run = this.run, f = this.frame, wall = f.wall;
-    const opt = run.options[0];
-    const stockMm = opt.stockCm * 10;
-    const cutMm = opt.cutToMm != null ? opt.cutToMm : stockMm;
+    // A live blind run still carries my pole sizes; if one ever doesn't, frame the drawing on the widest blind.
+    const opt = run.options?.[0] || null;
+    const blindW = Math.max(0, ...(run.blinds?.options || []).map((b) => b.widthMm || 0));
+    const stockMm = opt ? opt.stockCm * 10 : Math.max(blindW, wall.w);
+    const cutMm = opt && opt.cutToMm != null ? opt.cutToMm : stockMm;
     const heightKnown = run.heightMm != null && wall.h > 0;
     const sideMm = heightKnown ? wall.h : Math.min(wall.h > 0 ? wall.h : 900, 900);
     const cx = wall.x0 + wall.w / 2;
@@ -235,7 +258,7 @@ export class Hero {
     const s = this.s;
     const rowGap = this.compact ? 15 : 27 * s;
     const poleThGuess = 10 * s;
-    const needTopPx = poleThGuess / 2 + rowGap * (opt.cutPerEndMm > 0 ? 2 : 1) + (this.compact ? 16 : 24 * s);
+    const needTopPx = poleThGuess / 2 + rowGap * (opt?.cutPerEndMm > 0 ? 2 : 1) + (this.compact ? 16 : 24 * s);
     const needBotPx = this.compact ? 34 : 64 * s;
 
     let vw = 2 * halfW, vh = (vw * H) / W, k = W / vw, top = 0, topMm = MARGIN_MM;
@@ -679,7 +702,7 @@ export class Hero {
     if (ca > 0) {
       const [L, R] = [...hl].sort();
       const text = sp.adopted
-        ? `Muse Spark picked ${L} and ${R}${this.compact ? "" : ": the pole spans these"}`
+        ? `Muse Spark picked ${L} and ${R}${this.compact ? "" : this.blindOpt ? ": I size the blind from these" : ": the pole spans these"}`
         : pickedOutline
           ? `Muse Spark picked ${L} and ${R}${this.compact ? "" : ", the outline I measured"}`
           : "Muse Spark's picks didn't agree, so I kept the outline";
@@ -852,7 +875,9 @@ export class Hero {
     const poleTh = Math.max(cpt ? 3 : 4, 35 * k);
     const halfCut = (cutMm / 2) * k, halfStock = (stockMm / 2) * k, fin = FINIAL_MM * k;
     const fs = cpt ? 10 : Math.max(11, Math.round(13.5 * s));
-    const hasCut = opt.cutPerEndMm > 0 && opt.cutToMm != null;
+    const blind = this.blindOpt;
+    const showPole = !blind && !!opt;
+    const hasCut = showPole && opt.cutPerEndMm > 0 && opt.cutToMm != null;
 
     // frame width
     const fa = easeOut(seg(t, ...this.tl.frameDim));
@@ -884,7 +909,7 @@ export class Hero {
 
     // the pole, grown from the centre out to its cut length
     const pg = easeOut(seg(t, ...this.tl.pole));
-    if (pg > 0) {
+    if (showPole && pg > 0) {
       const hw = halfCut * pg;
       g.fillStyle = C.tape;
       g.shadowColor = "rgba(0,0,0,.35)";
@@ -908,7 +933,7 @@ export class Hero {
     const y2 = y1 - rowGap;
     // pole dimension
     const pa = easeOut(seg(t, ...this.tl.poleDim));
-    if (pa > 0) {
+    if (showPole && pa > 0) {
       g.globalAlpha = pa;
       this._ext(cxs - halfCut, py - poleTh / 2 - 3, y1 - 5, 0.5);
       this._ext(cxs + halfCut, py - poleTh / 2 - 3, y1 - 5, 0.5);
@@ -950,7 +975,7 @@ export class Hero {
 
     // finials, 9 cm each end
     const fna = easeOut(seg(t, ...this.tl.finials));
-    if (fna > 0) {
+    if (showPole && fna > 0) {
       g.globalAlpha = fna;
       const rad = Math.max(cpt ? 2.2 : 3, Math.min(poleTh * 0.95, 30 * k));
       for (const dir of [-1, 1]) {
@@ -972,7 +997,7 @@ export class Hero {
     // how far past the frame each side
     const oa = easeOut(seg(t, ...this.tl.overhang));
     const ohPx = halfCut - (xR - xL) / 2;
-    if (!cpt && oa > 0 && ohPx > 34) {
+    if (showPole && !cpt && oa > 0 && ohPx > 34) {
       g.globalAlpha = oa;
       const yo = py + poleTh / 2 + 12 * s;
       const lab = `${fmt1(opt.overhangEachSideMm / 10)}`;
@@ -983,6 +1008,9 @@ export class Hero {
       this._text(lab, (xR + cxs + halfCut) / 2, yo + fsm * 0.95, { size: fsm, color: C.line, weight: 600, knock: true });
       g.globalAlpha = 1;
     }
+
+    // the example roller blind, in place of the pole
+    if (blind) this._drawBlind(t, blind);
 
     // where the buyer pointed
     const hs = this.run.handSpan;
@@ -1038,6 +1066,96 @@ export class Hero {
         });
       }
       g.globalAlpha = 1;
+    }
+  }
+
+  // The example roller blind: a headrail grown from the centre, then the fabric let down over the opening.
+  // With no height in the clip, the fabric stops part way with a dashed hem, because I don't know the drop.
+  _drawBlind(t, b) {
+    const g = this.ctx, s = this.s, cpt = this.compact, { H } = this.size;
+    const { k, cx, sideMm, rowGap } = this.el;
+    const wall = this.frame.wall;
+    const inside = /inside/i.test(b.fit || "");
+    const dropKnown = b.dropMm != null && b.dropMm > 0;
+    const topMm = wall.y0 - (inside ? 15 : 50);
+    const botMm = dropKnown ? topMm + b.dropMm : wall.y0 + 0.6 * sideMm;
+    const [xc, yTop] = this._elev(cx, topMm);
+    const yBot = Math.min(this._elev(0, botMm)[1], H - 4);
+    const half = (b.widthMm / 2) * k;
+    const rail = Math.max(cpt ? 3 : 4, 32 * k);
+    const fs = cpt ? 10 : Math.max(11, Math.round(13.5 * s));
+
+    // headrail
+    const rg = easeOut(seg(t, ...this.tl.pole));
+    if (rg <= 0) return;
+    // fabric, let down from the rail
+    const dg = easeInOut(seg(t, this.tl.pole[0] + 0.3, this.tl.cut[1] + 0.1));
+    if (dg > 0) {
+      const y0 = yTop + rail / 2, y1 = lerp(y0, yBot, dg);
+      const grad = g.createLinearGradient(0, y0, 0, yBot);
+      grad.addColorStop(0, "rgba(242,194,48,.30)");
+      grad.addColorStop(1, dropKnown ? "rgba(242,194,48,.20)" : "rgba(242,194,48,.04)");
+      g.fillStyle = grad;
+      g.fillRect(xc - half, y0, half * 2, y1 - y0);
+      // the side edges, fading out when the drop isn't known
+      const eg = g.createLinearGradient(0, y0, 0, yBot);
+      eg.addColorStop(0, "rgba(242,194,48,.85)");
+      eg.addColorStop(1, dropKnown ? "rgba(242,194,48,.85)" : "rgba(242,194,48,.2)");
+      g.strokeStyle = eg;
+      g.lineWidth = 1.3;
+      g.beginPath();
+      for (const x of [xc - half, xc + half]) {
+        g.moveTo(Math.round(x) + 0.5, y0);
+        g.lineTo(Math.round(x) + 0.5, y1);
+      }
+      g.stroke();
+      // the hem: a bottom bar if I know the drop, a dashed line where it stops if I don't
+      if (dropKnown) {
+        const bar = Math.max(2, 18 * k);
+        g.fillStyle = C.tape;
+        g.fillRect(xc - half, y1 - bar, half * 2, bar);
+      } else if (dg >= 1) {
+        g.setLineDash([6, 5]);
+        g.strokeStyle = "rgba(242,194,48,.75)";
+        g.lineWidth = 1.4;
+        g.beginPath();
+        g.moveTo(xc - half, Math.round(y1) + 0.5);
+        g.lineTo(xc + half, Math.round(y1) + 0.5);
+        g.stroke();
+        g.setLineDash([]);
+      }
+    }
+    const hw = half * rg;
+    g.fillStyle = C.tape;
+    g.shadowColor = "rgba(0,0,0,.35)";
+    g.shadowBlur = 8;
+    g.shadowOffsetY = 2;
+    g.fillRect(xc - hw, yTop - rail / 2, hw * 2, rail);
+    g.shadowColor = "transparent";
+    g.shadowBlur = 0;
+    g.shadowOffsetY = 0;
+
+    // width dimension above the rail
+    const pa = easeOut(seg(t, ...this.tl.poleDim));
+    if (pa > 0) {
+      const y1 = yTop - rail / 2 - rowGap;
+      g.globalAlpha = pa;
+      this._ext(xc - half, yTop - rail / 2 - 3, y1 - 5, 0.5);
+      this._ext(xc + half, yTop - rail / 2 - 3, y1 - 5, 0.5);
+      this._dim(xc - half, xc + half, y1, C.tape, 1.3);
+      this._text(`${fmt1(b.widthMm / 10)} cm blind, ${b.fit}`, xc, y1 - fs * 0.85, {
+        size: fs + (cpt ? 0 : 1), color: C.tape, weight: 700, knock: true,
+      });
+      g.globalAlpha = 1;
+    }
+
+    // what the drop is, or that I still need it
+    const da = easeOut(seg(t, ...this.tl.finials));
+    if (da > 0) {
+      const fsm = Math.max(cpt ? 9 : 10, fs - 2);
+      const text = dropKnown ? `${fmtCm(b.dropMm)} cm drop` : cpt ? "drop: measure the height" : "drop: measure the height (not in the clip)";
+      const y = dropKnown ? (yTop + yBot) / 2 : yBot + fsm * 1.1;
+      this._text(text, xc, Math.min(y, H - fsm * 2.2), { size: fsm, color: C.line, weight: 600, knock: true, alpha: da, italic: !dropKnown });
     }
   }
 

@@ -60,6 +60,12 @@
                 <option value="Letter">US Letter</option>
               </select>
             </label>
+            <div class="try-seller"><span id="trySellerLab">Size it for</span>
+              <div class="seller" id="trySeller" role="group" aria-labelledby="trySellerLab">
+                <button type="button" class="seg-btn" data-seller="poles" aria-pressed="true" aria-label="Curtain pole (my shop)"><span>Curtain pole</span><small>my shop</small></button>
+                <button type="button" class="seg-btn" data-seller="blinds" aria-pressed="false" aria-label="Roller blind (example catalogue)"><span>Roller blind</span><small>example catalogue</small></button>
+              </div>
+            </div>
             <button type="submit" class="btn btn-primary" id="tryGo" disabled>Measure my window</button>
           </div>
           <p class="try-note">Your clip isn't stored.</p>
@@ -127,7 +133,13 @@
           <figcaption>Pole painted by Muse Image 1.0, cut out by SAM 3.1 and pasted onto the untouched photo.</figcaption>
         </figure>
       </div>
-      <div class="facts" id="facts" aria-live="polite"></div>
+      <div class="side-col">
+        <div class="seller" id="seller" role="group" aria-label="Whose rules to size by">
+          <button type="button" class="seg-btn" id="segPoles" data-seller="poles" aria-pressed="true" aria-label="Curtain pole (my shop)"><span>Curtain pole</span><small>my shop</small></button>
+          <button type="button" class="seg-btn" id="segBlinds" data-seller="blinds" aria-pressed="false" aria-label="Roller blind (example catalogue)"><span>Roller blind</span><small>example catalogue</small></button>
+        </div>
+        <div class="facts" id="facts" aria-live="polite"></div>
+      </div>
     </section>
 
     <section class="reply" aria-labelledby="replyLabel">
@@ -157,6 +169,7 @@
       <li><span class="how-n">3</span><p><b>Reply.</b> Muse Voice Transcribe hears what the buyer asked. Muse Spark drafts my reply.</p></li>
       <li><span class="how-n">4</span><p><b>Show.</b> Muse Image paints the pole on their wall, and SAM 3.1 cuts it out so nothing else in the photo changes.</p></li>
     </ol>
+    <p class="how-note">The roller blind is an example catalogue using the usual trade rules (inside a recess: the width less 10 mm; outside: 50 mm overlap each side), to show the measuring isn't tied to my shop.</p>
     <p class="how-guard">Every number in the reply comes from the measuring code or from the buyer's own words. The reply is checked, and rejected if it contains any other number.</p>
     <p class="how-acc"><button type="button" class="link-btn" id="accBtn" hidden>Measured against a tape</button></p>
   </footer>
