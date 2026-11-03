@@ -103,17 +103,24 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
   frames.forEach((f) => { if (f.ok && !good.some((g) => g.i === f.index)) { (f as any).outlier = true; } });
 
   // Which edges does the pole span? Muse Spark picks among edges the code found on the wall plane (the measured
-  // outline, or something wider such as a recess opening); the code measures between them. Three frames vote.
+  // outline, or something wider such as a recess opening); the code measures between them. Up to five frames vote.
   const t2 = t();
-  const voters = [hero, ...good.filter((g) => g !== hero)].slice(0, 3);
+  const voters = [hero, ...good.filter((g) => g !== hero)].slice(0, 5); // five votes: a faint recess edge in one frame is usually clear in another
   const picks = (await Promise.all(voters.map(async (g) => {
     const buf = a.frameBufs[g.i];
     const p = await pickSpan(api, buf, await loadRGB(buf), g.r.G, g.r.wall, g.r.heightMm !== null, transcript).catch(() => null);
     return p ? { g, p } : null;
   }))).filter((x): x is NonNullable<typeof x> => !!x);
   timings.spanMs = t() - t2;
-  const wider = picks.filter((x) => x.p.widthMm > x.g.r.widthMm + Math.max(30, 0.03 * x.g.r.widthMm));
-  const sameAsOutline = picks.filter((x) => Math.abs(x.p.widthMm - x.g.r.widthMm) < 15);
+  const margin = (x: (typeof picks)[number]) => Math.max(30, 0.03 * x.g.r.widthMm);
+  const wider = picks.filter((x) => x.p.widthMm > x.g.r.widthMm + margin(x));
+  // A frame where the code found no edge wider than the outline had nothing else to pick, so its "the outline" isn't
+  // a vote against a wider opening (the recess edge can be faint in one frame and clear in the next).
+  const couldBeWider = (x: (typeof picks)[number]) => {
+    const xs = x.p.edges.filter((e) => e.measured).map((e) => e.xMm), lo = Math.min(...xs), hi = Math.max(...xs);
+    return x.p.edges.some((e) => !e.measured && (e.xMm < lo - margin(x) / 2 || e.xMm > hi + margin(x) / 2));
+  };
+  const sameAsOutline = picks.filter((x) => Math.abs(x.p.widthMm - x.g.r.widthMm) < 15 && couldBeWider(x));
   if (picks.length) result.models.push("muse-spark-1.3 (which edges)");
   // Adopt a wider span only when the frames agree on it: the largest group of wider picks within 25 mm of each other,
   // at least two frames (one, if only one frame could be asked), and more than the frames that said "the outline".
