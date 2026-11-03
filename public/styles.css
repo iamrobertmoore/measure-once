@@ -146,7 +146,9 @@ a { color: inherit; }
 .desk-dots { display: flex; gap: 7px; }
 .desk-dots i { width: 11px; height: 11px; border-radius: 50%; background: rgba(234,240,247,.16); }
 .desk-title { font-size: 13.5px; font-weight: 620; }
-.desk-title span { color: var(--faint); font-weight: 500; margin-left: 8px; }
+.desk-title a { color: var(--muted); font-weight: 500; margin-left: 8px; text-underline-offset: 3px; text-decoration-color: var(--line-2); }
+.desk-title a:hover { color: var(--text); }
+.desk-title span { color: var(--faint); font-weight: 500; }
 
 /* clips: a strip of buyer messages */
 .lists {
@@ -443,7 +445,7 @@ a { color: inherit; }
   .stats { grid-template-columns: minmax(0, 1fr); margin-top: 44px; }
   .stats li, .stats li + li { padding: 16px 0; border-left: 0; border-bottom: 1px solid var(--line); }
   .desk { margin-left: 8px; margin-right: 8px; border-radius: 12px; }
-  .desk-title span { display: none; }
+  .desk-title span, .desk-title a { display: none; }
   .pane { padding: 14px; }
   .clip-item { width: 190px; }
   .facts { grid-template-columns: minmax(0, 1fr); }
