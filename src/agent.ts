@@ -68,7 +68,7 @@ Return JSON: {"curtainType": "eyelet|rings|tab top|pinch pleat|unknown", "chosen
   try {
   const res: any = await api.responses.create({
     model: input.model ?? "muse-spark-1.3",
-    max_output_tokens: 16000,
+    max_output_tokens: 16000, reasoning: { effort: process.env.DRAFT_EFFORT || "low" },
     instructions: VOICE,
     input: [{ role: "user", content: [{ type: "input_text", text: prompt(attempt > 0 && best ? `Your last draft left out the size for the buyer's ${clash[0]} cm. Include it: the ${alt.stock_length_cm} cm pole${alt.cut_to_cm ? ` cut to ${alt.cut_to_cm} cm, ${alt.cut_each_end_cm} cm off each end` : " as supplied"}.` : "") }] }],
     text: { format: { type: "json_object" } },

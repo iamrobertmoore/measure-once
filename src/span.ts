@@ -67,7 +67,7 @@ export function wallEdges(rgb: RGB, G: number[], wall: { x0: number; y0: number;
 }
 
 /** The frame with each candidate edge drawn as a lettered line, for Muse Spark to choose from. */
-export async function labelledFrame(jpeg: Buffer, G: number[], wall: { y0: number; h: number }, heightKnown: boolean, edges: SpanEdge[], outW = 1280) {
+export async function labelledFrame(jpeg: Buffer, G: number[], wall: { y0: number; h: number }, heightKnown: boolean, edges: SpanEdge[], outW = 1024) {
   const meta = await sharp(jpeg).metadata(); const W = meta.width!, H = meta.height!;
   const hh = heightKnown && wall.h > 0 ? wall.h : 800;
   const cols = ["#ff2d55", "#00c7ff", "#ffd60a", "#30d158", "#bf5af2", "#ff9f0a", "#64d2ff", "#ff375f", "#a2845e", "#ffffff", "#5e5ce6", "#ac8e68", "#32ade6", "#ff6482"];
@@ -86,7 +86,7 @@ export async function labelledFrame(jpeg: Buffer, G: number[], wall: { y0: numbe
 /** Ask Muse Spark which two lettered lines the pole has to span. */
 export async function askSpan(api: OpenAI, labelled: Buffer, letters: string[], transcript: string, measured = "", model = "muse-spark-1.3"): Promise<{ left: string; right: string; why: string } | null> {
   const res: any = await api.responses.create({
-    model, max_output_tokens: 12000,
+    model, max_output_tokens: 12000, reasoning: { effort: "low" }, // picking a letter needs little deliberation; 3 to 4 times faster
     input: [{ role: "user", content: [
       { type: "input_image", image_url: `data:image/jpeg;base64,${labelled.toString("base64")}` },
       { type: "input_text", text:
