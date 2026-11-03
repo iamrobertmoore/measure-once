@@ -19,6 +19,18 @@
       "pole": "pole.jpg"
     },
     {
+      "id": "recess-friend",
+      "title": "Another home: window in a recess",
+      "thumb": "f24.jpg",
+      "pole": "pole.jpg"
+    },
+    {
+      "id": "small-friend",
+      "title": "Another home: sheet below the window",
+      "thumb": "f71.jpg",
+      "pole": null
+    },
+    {
       "id": "kitchen-curled",
       "title": "Kitchen, sheet curled",
       "thumb": "f1.jpg",

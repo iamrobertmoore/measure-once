@@ -35,7 +35,7 @@ I read my last {{inbox_threads_read}} buyer threads. {{inbox_sizing_threads}} we
 
 | Claim | Evidence | How to check |
 |---|---|---|
-| On plain windows it's within {{within_cm}} cm of a tape | Two of my windows: {{lr_err_mm}} mm and {{bt_err_mm}} mm. The third, a recess, is {{sm_err_mm}} mm, and its reply flags that | [Measured against a tape](#measured-against-a-tape), or the link at the foot of the page |
+| On plain windows it's within {{plain_within_cm}} cm of a tape | {{windows_total}} real windows, {{other_homes}} of them outside my house: {{windows_measured}} measured, {{windows_refused}} refused rather than guessed. The recesses are the hard case, and their replies flag it | [Measured against a tape](#measured-against-a-tape) |
 | The geometry earns its place | Asked to read the width straight off the same frames, Muse Spark alone said {{lr_spark_cm}} cm and {{bt_spark_cm}} cm, and its readings of single frames spread by up to {{spark_spread_cm}} cm | [The baseline](#muse-spark-alone-versus-the-measuring-code) |
 | The reply can't invent a number | Every length in a draft, with its unit, must be one the code computed or the buyer said; anything else is rejected | {{ref_check}}, tested in `test/checker.ts` |
 | It knows when not to answer | Three clips filmed to fail (no sheet, curled sheet, steep angle): refused {{refused}} of {{refusals}}, all three on the page | Pick them on the live page |
@@ -74,17 +74,15 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 
 ## Measured against a tape
 
-Three of my own windows, each measured with a tape before the tool ran, plus three clips filmed to fail.
+{{windows_total}} real windows, each measured with a tape: 3 in my house and {{other_homes}} elsewhere, filmed on a phone the way a buyer would. Plus 3 clips filmed to fail.
 
-| Window | Tape | Measure Once | Difference |
-|---|---|---|---|
-| Living room, shutters | {{lr_tape_cm}} cm | {{lr_measured_cm}} cm | {{lr_err_mm}} mm |
-| Bathroom, wooden surround | {{bt_tape_cm}} cm | {{bt_measured_cm}} cm | {{bt_err_mm}} mm |
-| Small window in a recess (opening on the wall) | {{sm_tape_cm}} cm | {{sm_measured_cm}} cm | {{sm_err_mm}} mm |
+{{tape_table}}
 
 Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused {{refused}} of {{refusals}}, each with the right reason.
 
-A pole runs 15 to 20 cm past the opening each side, so a couple of centimetres moves the overhang, not the order. The recess is the hard one. The frame sits back from the wall, and the first version measured the frame ({{sm_frame_cm}} cm). Now Muse Spark picks the recess opening on the wall ({{sm_votes}} frames agreed), and the code measures it at {{sm_measured_cm}} cm against my {{sm_tape_cm}}. That's still short, so the reply says both numbers and sizes both: "{{sm_reply_quote}}"
+On the {{plain_count}} plain windows it's within {{plain_within_cm}} cm. A pole runs 15 to 20 cm past the opening each side, so that moves the overhang, not the order. The {{recess_count}} recessed windows are the hard ones ({{recess_errs}}): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "{{sm_reply_quote}}"
+
+Two windows were refused rather than guessed: one had the sheet resting on top of the frame instead of flat on the wall, the other was filmed from a sharp side angle with one side hidden behind a machine. A refusal costs the buyer ten seconds of filming; a wrong size costs a pole.
 
 ### Muse Spark alone versus the measuring code
 

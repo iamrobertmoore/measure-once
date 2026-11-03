@@ -93,7 +93,11 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
   if (good.length < minF) { result.reason = "not enough frames agree; hold the phone steadier"; timings.totalMs = t() - a.t0; return result; }
   const w = summarise(good.map((g) => g.r.widthMm));
   const hs = good.map((g) => g.r.heightMm).filter((v): v is number => v !== null);
-  if (w.iqr > Math.max(25, 0.015 * w.median)) { result.reason = `frames disagree by ${Math.round(w.iqr)} mm; hold the phone steadier`; timings.totalMs = t() - a.t0; return result; }
+  // Frames that disagree usually mean a window set back in a recess (the frame shifts against the wall as the phone
+  // moves), or a sheet that isn't flat on the wall. Don't refuse yet: if Muse Spark and the frames agree on an opening
+  // in the wall plane (which doesn't shift), that's the measurement. Otherwise refuse below.
+  const spreadTooWide = w.iqr > Math.max(25, 0.015 * w.median);
+  const disagreeReason = w.iqr > 0.1 * w.median ? "the frames don't agree; is the sheet flat on the wall beside the window?" : `frames disagree by ${Math.round(w.iqr)} mm; hold the phone steadier`;
   const hero = good.reduce((x, y) => (Math.abs(y.r.widthMm - w.median) < Math.abs(x.r.widthMm - w.median) ? y : x));
   Object.assign(result, { ok: true, widthMm: w.median, heightMm: hs.length ? summarise(hs).median : null, spreadMm: w.iqr, framesUsed: good.length, heroFrame: hero.i });
   frames.forEach((f) => { if (f.ok && !good.some((g) => g.i === f.index)) { (f as any).outlier = true; } });
@@ -123,9 +127,13 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
     if (hp.g !== hero) result.heroFrame = hp.g.i;
     result.span = { adopted: true, widthMm: spanW, frameWidthMm: w.median, why: hp.p.why, left: hp.p.left, right: hp.p.right, edges: hp.p.edges, votes: `${agree.length} of ${picks.length}` };
     result.widthMm = spanW;
+    if (spreadTooWide) { const ws = agree.map((x) => x.p.widthMm); result.spreadMm = Math.max(...ws) - Math.min(...ws); (result as any).spreadFrom = "the opening, across the frames that agreed"; }
   } else if (picks.length) {
     const hp = picks.find((x) => x.g === hero) ?? picks[0];
     result.span = { adopted: false, widthMm: hp.p.widthMm, frameWidthMm: w.median, why: hp.p.why, left: hp.p.left, right: hp.p.right, edges: hp.p.edges, votes: sameAsOutline.length ? `${sameAsOutline.length} of ${picks.length} agreed with the outline` : `the ${picks.length} frames didn't agree on a wider opening` };
+  }
+  if (spreadTooWide && !result.span?.adopted) {
+    Object.assign(result, { ok: false, reason: disagreeReason, widthMm: undefined, spreadMm: undefined }); timings.totalMs = t() - a.t0; return result;
   }
   const sizingMm = result.widthMm!;
   const heroWall: any = (frames.find((f) => f.index === result.heroFrame) as any).wall;

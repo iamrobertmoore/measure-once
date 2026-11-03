@@ -15,7 +15,22 @@ const ref = (file: string, pattern: string) => {
   return `[\`${file}:${i + 1}\`](${file}#L${i + 1})`;
 };
 const sm = run("cloakroom");
+// The whole tape table, every window, generated so it can't drift from the scored runs.
+const tapeTable = ["| Window | Where | Tape | Measure Once | Difference |", "|---|---|---|---|---|",
+  ...acc.rows.map((r: any) => {
+    const home = r.window.startsWith("another home") ? "elsewhere" : "my house";
+    const name = r.window.replace(/^another home: /, "");
+    const what = r.recess ? " (recess opening)" : "";
+    return `| ${name[0].toUpperCase() + name.slice(1)}${what} | ${home} | ${cm(r.tape_mm)} cm | ${r.measured_mm !== null ? cm(r.measured_mm) + " cm" : "refused"} | ${r.error_mm !== null ? signed(r.error_mm) + " mm" : r.note.replace(/;.*/, "")} |`;
+  })].join("\n");
+const measured = acc.rows.filter((r: any) => r.error_mm !== null);
+const plain = measured.filter((r: any) => !r.recess), recessRows = measured.filter((r: any) => r.recess);
 const facts: Record<string, string | number> = {
+  tape_table: tapeTable,
+  windows_total: acc.rows.length, windows_measured: measured.length, windows_refused: acc.rows.length - measured.length,
+  other_homes: acc.rows.filter((r: any) => r.window.startsWith("another home")).length,
+  plain_count: plain.length, plain_within_cm: (Math.max(...plain.map((r: any) => Math.abs(r.error_mm))) / 10).toFixed(1),
+  recess_count: recessRows.length, recess_errs: recessRows.map((r: any) => `${signed(r.error_mm)} mm`).join(" and "),
   ref_sam_image: ref("src/measure.ts", 'segmentImage(api, url, "sheet of paper")'),
   ref_sam_video: ref("src/pipeline.ts", 'segmentVideo(api, file.id, "hand")'),
   ref_sam_pole: ref("src/render.ts", '"wooden pole"'),

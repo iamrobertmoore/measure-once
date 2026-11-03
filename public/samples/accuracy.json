@@ -1,5 +1,5 @@
 {
- "scoredAt": "2026-11-02T19:40:15.861Z",
+ "scoredAt": "2026-11-03T09:31:11.039Z",
  "rows": [
   {
    "window": "living room (shutters)",
@@ -9,6 +9,7 @@
    "spread_mm": 25.9,
    "frames": 6,
    "note": "",
+   "recess": false,
    "reply_flags_buyer_number": null
   },
   {
@@ -19,6 +20,7 @@
    "spread_mm": 12.5,
    "frames": 6,
    "note": "",
+   "recess": false,
    "reply_flags_buyer_number": null
   },
   {
@@ -29,7 +31,52 @@
    "spread_mm": 6.1,
    "frames": 7,
    "note": "",
+   "recess": true,
    "reply_flags_buyer_number": true
+  },
+  {
+   "window": "another home: window in a recess",
+   "tape_mm": 570,
+   "measured_mm": 602,
+   "error_mm": 32,
+   "spread_mm": 4.2,
+   "frames": 8,
+   "note": "",
+   "recess": true,
+   "reply_flags_buyer_number": true
+  },
+  {
+   "window": "another home: small window (sheet below it)",
+   "tape_mm": 630,
+   "measured_mm": 607,
+   "error_mm": -23,
+   "spread_mm": 5,
+   "frames": 6,
+   "note": "",
+   "recess": false,
+   "reply_flags_buyer_number": null
+  },
+  {
+   "window": "another home: bedroom window behind a bed",
+   "tape_mm": 1850,
+   "measured_mm": null,
+   "error_mm": null,
+   "spread_mm": null,
+   "frames": 5,
+   "note": "the frames don't agree; is the sheet flat on the wall beside the window?",
+   "recess": false,
+   "reply_flags_buyer_number": null
+  },
+  {
+   "window": "another home: wide glazed doors from a side angle",
+   "tape_mm": 2930,
+   "measured_mm": null,
+   "error_mm": null,
+   "spread_mm": null,
+   "frames": 0,
+   "note": "no sheet found",
+   "recess": false,
+   "reply_flags_buyer_number": null
   }
  ],
  "abstain": [
@@ -53,9 +100,9 @@
   }
  ],
  "summary": {
-  "measured": 3,
-  "of": 3,
-  "medianAbsErrorMm": 22,
+  "measured": 5,
+  "of": 7,
+  "medianAbsErrorMm": 23,
   "maxAbsErrorMm": 55,
   "refusedCorrectly": 3,
   "refusalsExpected": 3
