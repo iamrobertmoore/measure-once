@@ -1069,7 +1069,8 @@ async function measureMine() {
       state.shown = null;
       await select(YOURS);
       $("main").focus({ preventScroll: true });
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const top = $("desk").getBoundingClientRect().top + window.scrollY - 64;
+      window.scrollTo({ top, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     }
   } catch (err) {
     clearInterval(timer);
