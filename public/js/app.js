@@ -493,9 +493,10 @@ function renderReply(run, id, changed) {
   if (changed || state.live.has(id)) {
     if (run.ok) {
       $("replyLabel").textContent = "Draft reply, in your words";
+      const writer = !blinds && /muse-spark-open/.test(draft?.ranOn || "") ? "Muse Spark Open, Meta's open-weights model on Baseten," : "Muse Spark";
       $("replySub").textContent = blinds
         ? "Muse Spark drafted this from the measuring code's numbers and the example blind catalogue. Change anything you like before it goes."
-        : "Muse Spark drafted this from the measuring code's numbers. Change anything you like before it goes.";
+        : `${writer} drafted this from the measuring code's numbers. Every length in it was checked against them. Change anything you like before it goes.`;
       ta.value = draft?.reply || "";
       ta.placeholder = draft
         ? ""

@@ -25,15 +25,16 @@ export async function openJson(system: string, user: string): Promise<{ text: st
   const c = open();
   if (!c) return null;
   const t0 = Date.now();
-  const res = await c.chat.completions.create({
+  const res: any = await c.chat.completions.create({
     model: OPEN_MODEL,
     messages: [{ role: "system", content: system }, { role: "user", content: user }],
     response_format: { type: "json_object" },
-    max_tokens: 4000,
+    max_tokens: 12000,
+    reasoning_effort: "low",
     temperature: 0.3,
-  });
+  } as any);
   const text = res.choices?.[0]?.message?.content ?? "";
-  if (!text.trim()) throw new Error("Muse Spark Open sent an empty answer");
+  if (!text.trim()) throw new Error(`Muse Spark Open sent an empty answer (finish: ${res.choices?.[0]?.finish_reason}, ${res.usage?.completion_tokens} tokens)`);
   console.log(`[open] ${OPEN_MODEL} on ${OPEN_WHERE}: id ${res.id}, ${Date.now() - t0} ms`);
   return { text, ms: Date.now() - t0 };
 }

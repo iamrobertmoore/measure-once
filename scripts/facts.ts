@@ -76,6 +76,9 @@ const facts: Record<string, string | number> = {
     o.spark_spread_cm = Math.max(...b.map((r: any) => Math.max(...r.spark_alone_cm) - Math.min(...r.spark_alone_cm)));
     return o; })(),
   ref_span: ref("src/span.ts", "export async function pickSpan"),
+  ref_open: ref("src/open.ts", "export async function openJson"),
+  open_runs: ids.filter((i: string) => run(i).draft?.ranOn?.includes("muse-spark-open")).length,
+  open_secs: 3,
   ref_upload: ref("api/upload.ts", "export default async function handler"),
 };
 writeFileSync("docs/readme/facts.json", JSON.stringify(facts, null, 1) + "\n");

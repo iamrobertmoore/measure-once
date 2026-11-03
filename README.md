@@ -66,7 +66,8 @@ For my living room window it recommends the **300 cm pole cut to 255 cm**, takin
 | SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside (on full clips; an upload from the page sends frames only, to stay fast and small) | [`src/pipeline.ts:220`](src/pipeline.ts#L220) |
 | Muse Spark 1.3, looking | Picks which of the lettered edges the pole spans: the trim, or a recess opening around a set-back window | [`src/span.ts:103`](src/span.ts#L103) |
 | Muse Voice Transcribe | Hears what the buyer wants, biased to English with curtain words as keywords | [`src/pipeline.ts:49`](src/pipeline.ts#L49) |
-| Muse Spark 1.3, writing | Picks among the options the code computed and drafts the reply in my voice, reconciling the buyer's own numbers | [`src/agent.ts:84`](src/agent.ts#L84) |
+| **Muse Spark Open** (open weights, `meta-models/muse-spark-open`, served on Baseten) | Writes the reply: picks among the options the code computed and drafts it in my voice, reconciling the buyer's own numbers. On the 5 recorded clips every draft passed the number check first time, in about 3 s each. Every live run says which model wrote its draft | [`src/open.ts:24`](src/open.ts#L24) |
+| Muse Spark 1.3, writing (fallback) | Takes over the draft by itself if Baseten can't answer, so a run never stops | [`src/agent.ts:84`](src/agent.ts#L84) |
 | Muse Image 1.0 | Turns a flat pole drawn in exact perspective into a photoreal pole on the buyer's wall | [`src/render.ts:52`](src/render.ts#L52) |
 | SAM 3.1 on Muse Image's output | Cuts out only the painted pole, so nothing else in the buyer's photo changes | [`src/render.ts:60`](src/render.ts#L60) |
 
@@ -88,7 +89,7 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 
 Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused 3 of 3, each with the right reason.
 
-Over the 5 windows it measured, the median error is 2.3 cm and the worst 5.5 cm; on the 3 plain windows it's within 2.3 cm. The question that matters is whether the pole would fit: cut to each measurement, the pole sits 16.5 cm, 18.5 cm, 14.5 cm, 19.0 cm, 16.5 cm past each side of the width the tape measured, so 5 of 5 would fit (4 inside my usual 15 to 20 cm). The 2 recessed windows are the hard ones (−55 mm and +32 mm): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "Your figure of 59 cm would need the 120 cm pole cut to 94 cm with 13 cm off each end."
+Over the 5 windows it measured, the median error is 2.3 cm and the worst 5.5 cm; on the 3 plain windows it's within 2.3 cm. The question that matters is whether the pole would fit: cut to each measurement, the pole sits 16.5 cm, 18.5 cm, 14.5 cm, 19.0 cm, 16.5 cm past each side of the width the tape measured, so 5 of 5 would fit (4 inside my usual 15 to 20 cm). The 2 recessed windows are the hard ones (−55 mm and +32 mm): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "If we use your 59 cm it would be the 120 cm pole cut to 94 cm, that is 13 cm off each end."
 
 Two windows were refused rather than guessed: one had the sheet resting on top of the frame instead of flat on the wall, the other was filmed from a sharp side angle with one side hidden behind a machine. A refusal costs the buyer ten seconds of filming; a wrong size costs a pole.
 

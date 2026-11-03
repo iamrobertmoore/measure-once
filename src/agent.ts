@@ -92,7 +92,7 @@ Return JSON: {"curtainType": "eyelet|rings|tab top|pinch pleat|unknown", "chosen
   }
   const jsonText = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
   const d = JSON.parse(jsonText) as Draft;
-  d.ranOn = ranOn;
+  d.ranOn = ranOn; (d as any).attempt = attempt + 1;
   d.questions = Array.isArray(d.questions) ? d.questions : [];
   checkNumbers(d.reply, facts, d.questions);
   if (hasAlt(d.reply)) return d;

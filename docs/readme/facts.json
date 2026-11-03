@@ -29,7 +29,7 @@
  "ref_hands_cap": "[`src/pipeline.ts:225`](src/pipeline.ts#L225)",
  "ref_hand_way": "[`src/pipeline.ts:251`](src/pipeline.ts#L251)",
  "ref_polarity": "[`src/geometry.ts:205`](src/geometry.ts#L205)",
- "sm_reply_quote": "Your figure of 59 cm would need the 120 cm pole cut to 94 cm with 13 cm off each end.",
+ "sm_reply_quote": "If we use your 59 cm it would be the 120 cm pole cut to 94 cm, that is 13 cm off each end.",
  "inbox_sizing_share": "1 in 4",
  "inbox_reply_words_median": 77,
  "inbox_reply_words_p90": 263,
@@ -66,5 +66,8 @@
  "sm_spark_range": "44 to 60",
  "spark_spread_cm": 60,
  "ref_span": "[`src/span.ts:103`](src/span.ts#L103)",
+ "ref_open": "[`src/open.ts:24`](src/open.ts#L24)",
+ "open_runs": 5,
+ "open_secs": 3,
  "ref_upload": "[`api/upload.ts:13`](api/upload.ts#L13)"
 }
