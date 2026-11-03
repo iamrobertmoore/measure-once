@@ -83,8 +83,8 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 | Small bathroom window in recess (recess opening) | my house | 59.0 cm | 53.5 cm | −55 mm |
 | Window in a recess (recess opening) | elsewhere | 57.0 cm | 60.2 cm | +32 mm |
 | Small window (sheet below it) | elsewhere | 63.0 cm | 60.7 cm | −23 mm |
-| Bedroom window behind a bed | elsewhere | 185.0 cm | refused | the frames don't agree |
-| Wide glazed doors from a side angle | elsewhere | 293.0 cm | refused | no sheet found |
+| Bedroom window behind a bed | elsewhere | not needed | refused | the frames don't agree |
+| Wide glazed doors from a side angle | elsewhere | not needed | refused | no sheet found |
 
 Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused 3 of 3, each with the right reason.
 

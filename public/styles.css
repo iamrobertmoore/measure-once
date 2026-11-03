@@ -395,7 +395,7 @@ a { color: inherit; }
 .proof-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: end; }
 .proof-sub { font-size: 17px; color: var(--muted); max-width: 52ch; }
 .acc { list-style: none; padding: 0; margin: 44px 0 0; border-top: 1px solid var(--line-2); }
-.acc li { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 7.5rem; gap: 24px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.acc li { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 10rem; gap: 24px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
 .acc-name { font-size: 15px; font-weight: 600; }
 .acc-name small { display: block; font-size: 13px; color: var(--faint); font-weight: 500; margin-top: 2px; }
 .acc-bars-wrap { display: grid; gap: 6px; }

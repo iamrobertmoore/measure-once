@@ -1109,14 +1109,16 @@ async function loadAccuracy() {
     const top = Math.max(...rows.map((r) => Math.max(r.tape_mm, r.measured_mm || 0)));
     const pct = (mm) => `${((mm / top) * 100).toFixed(2)}%`;
     const name = (w) => {
-      const m = String(w).match(/^(.*?)(?: \((.*)\))?$/);
-      return `${esc(cap(m[1]))}${m[2] ? `<small>${esc(m[2])}</small>` : ""}`;
+      const other = /^another home: /i.test(w);
+      const m = String(w).replace(/^another home: /i, "").match(/^(.*?)(?: \((.*)\))?$/);
+      const sub = [other ? "another home" : "my house", m[2]].filter(Boolean).join(", ");
+      return `${esc(cap(m[1]))}<small>${esc(sub)}</small>`;
     };
     $("accTable").innerHTML = rows
       .map((r) => {
         if (r.measured_mm == null) {
           const why = cap(String(r.note || "").split(";")[0]);
-          return `<li><p class="acc-name">${name(r.window)}<small>Tape: ${cm1(r.tape_mm)} cm</small></p>
+          return `<li><p class="acc-name">${name(r.window)}</p>
             <p class="acc-refused">Refused: ${esc(why)}</p><p class="acc-err ok-r">Asked for a re-film</p></li>`;
         }
         const e = r.error_mm != null ? r.error_mm : r.measured_mm - r.tape_mm;

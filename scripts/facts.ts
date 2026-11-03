@@ -21,7 +21,7 @@ const tapeTable = ["| Window | Where | Tape | Measure Once | Difference |", "|--
     const home = r.window.startsWith("another home") ? "elsewhere" : "my house";
     const name = r.window.replace(/^another home: /, "");
     const what = r.recess ? " (recess opening)" : "";
-    return `| ${name[0].toUpperCase() + name.slice(1)}${what} | ${home} | ${cm(r.tape_mm)} cm | ${r.measured_mm !== null ? cm(r.measured_mm) + " cm" : "refused"} | ${r.error_mm !== null ? signed(r.error_mm) + " mm" : r.note.replace(/;.*/, "")} |`;
+    return `| ${name[0].toUpperCase() + name.slice(1)}${what} | ${home} | ${r.measured_mm !== null ? cm(r.tape_mm) + " cm" : "not needed"} | ${r.measured_mm !== null ? cm(r.measured_mm) + " cm" : "refused"} | ${r.error_mm !== null ? signed(r.error_mm) + " mm" : r.note.replace(/;.*/, "")} |`;
   })].join("\n");
 const measured = acc.rows.filter((r: any) => r.error_mm !== null);
 const plain = measured.filter((r: any) => !r.recess), recessRows = measured.filter((r: any) => r.recess);

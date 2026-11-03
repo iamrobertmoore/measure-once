@@ -5,7 +5,7 @@
  "pole_fit_overhangs": "16.5 cm, 18.5 cm, 14.5 cm, 19.0 cm, 16.5 cm",
  "worst_err_cm": "5.5",
  "median_err_cm": "2.3",
- "tape_table": "| Window | Where | Tape | Measure Once | Difference |\n|---|---|---|---|---|\n| Living room (shutters) | my house | 222.0 cm | 219.8 cm | −22 mm |\n| Bathroom (wooden surround) | my house | 119.0 cm | 121.0 cm | +20 mm |\n| Small bathroom window in recess (recess opening) | my house | 59.0 cm | 53.5 cm | −55 mm |\n| Window in a recess (recess opening) | elsewhere | 57.0 cm | 60.2 cm | +32 mm |\n| Small window (sheet below it) | elsewhere | 63.0 cm | 60.7 cm | −23 mm |\n| Bedroom window behind a bed | elsewhere | 185.0 cm | refused | the frames don't agree |\n| Wide glazed doors from a side angle | elsewhere | 293.0 cm | refused | no sheet found |",
+ "tape_table": "| Window | Where | Tape | Measure Once | Difference |\n|---|---|---|---|---|\n| Living room (shutters) | my house | 222.0 cm | 219.8 cm | −22 mm |\n| Bathroom (wooden surround) | my house | 119.0 cm | 121.0 cm | +20 mm |\n| Small bathroom window in recess (recess opening) | my house | 59.0 cm | 53.5 cm | −55 mm |\n| Window in a recess (recess opening) | elsewhere | 57.0 cm | 60.2 cm | +32 mm |\n| Small window (sheet below it) | elsewhere | 63.0 cm | 60.7 cm | −23 mm |\n| Bedroom window behind a bed | elsewhere | not needed | refused | the frames don't agree |\n| Wide glazed doors from a side angle | elsewhere | not needed | refused | no sheet found |",
  "windows_total": 7,
  "windows_measured": 5,
  "windows_refused": 2,
