@@ -8,7 +8,7 @@
 
 I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles come in fixed lengths, the buyer cuts theirs down at home, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
 
-Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into millimetres. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
+Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
 
 It's built around my shop, but the measuring isn't tied to it. The page has a second catalogue, a made-to-measure roller blind using the usual trade rules, and the same clip gives that maker the width to order inside the recess or outside it. Blinds, shutters, curtains and tracks all start with the same question.
 
@@ -35,9 +35,9 @@ I read my last {{inbox_threads_read}} buyer threads. {{inbox_sizing_threads}} we
 
 | Claim | Evidence | How to check |
 |---|---|---|
-| On plain windows it's within {{plain_within_cm}} cm of a tape | {{windows_total}} real windows, {{other_homes}} of them outside my house: {{windows_measured}} measured, {{windows_refused}} refused rather than guessed. The recesses are the hard case, and their replies flag it | [Measured against a tape](#measured-against-a-tape) |
+| It's {{median_err_cm}} cm from a steel tape, median; the poles it chose would all have fitted | {{windows_total}} real windows, {{other_homes}} of them outside my house: {{windows_measured}} measured (worst {{worst_err_cm}} cm, a recess), {{windows_refused}} refused rather than guessed. Cut to the measurement, {{pole_fit_ok}} of {{pole_fit_total}} poles would still fit the tape's width ({{pole_fit_overhangs}} past each side) | [Measured against a tape](#measured-against-a-tape) |
 | The geometry earns its place | Asked to read the width straight off the same frames, Muse Spark alone said {{lr_spark_cm}} cm and {{bt_spark_cm}} cm, and its readings of single frames spread by up to {{spark_spread_cm}} cm | [The baseline](#muse-spark-alone-versus-the-measuring-code) |
-| The reply can't invent a number | Every length in a draft, with its unit, must be one the code computed or the buyer said; anything else is rejected | {{ref_check}}, tested in `test/checker.ts` |
+| The reply can't add a length of its own | Every length in a draft, with its unit, must be one the code computed or the buyer said; anything else is rejected. It can't stop a real number landing in the wrong sentence, which is why I read every draft before it goes | {{ref_check}}, tested in `test/checker.ts` |
 | It knows when not to answer | Three clips filmed to fail (no sheet, curled sheet, steep angle): refused {{refused}} of {{refusals}}, all three on the page | Pick them on the live page |
 | Nothing in the photo changes except the pole | Only SAM's cut-out of the painted pole is pasted back onto the original | {{ref_sam_pole}} |
 | It works on your window, not just mine | **Your window** on the page sends your frames to the same pipeline | {{ref_upload}} |
@@ -80,7 +80,7 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 
 Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused {{refused}} of {{refusals}}, each with the right reason.
 
-On the {{plain_count}} plain windows it's within {{plain_within_cm}} cm. A pole runs 15 to 20 cm past the opening each side, so that moves the overhang, not the order. The {{recess_count}} recessed windows are the hard ones ({{recess_errs}}): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "{{sm_reply_quote}}"
+Over the {{windows_measured}} windows it measured, the median error is {{median_err_cm}} cm and the worst {{worst_err_cm}} cm; on the {{plain_count}} plain windows it's within {{plain_within_cm}} cm. The question that matters is whether the pole would fit: cut to each measurement, the pole sits {{pole_fit_overhangs}} past each side of the width the tape measured, so {{pole_fit_ok}} of {{pole_fit_total}} would fit ({{pole_fit_band}} inside my usual 15 to 20 cm). The {{recess_count}} recessed windows are the hard ones ({{recess_errs}}): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "{{sm_reply_quote}}"
 
 Two windows were refused rather than guessed: one had the sheet resting on top of the frame instead of flat on the wall, the other was filmed from a sharp side angle with one side hidden behind a machine. A refusal costs the buyer ten seconds of filming; a wrong size costs a pole.
 
@@ -137,4 +137,4 @@ npm test                                          # geometry, catalogue and repl
 
 ## Built for the Meta Global AI Developer Hackathon
 
-Everything here was written during the event (26 October to 4 November 2026). The clips are of my own house. MIT licence.
+Everything here was written during the event (26 October to 4 November 2026). The clips are of my house and of {{other_homes}} windows in other homes. MIT licence.

@@ -1,5 +1,5 @@
-// One source for every number on every surface. Builds facts.json from the recorded runs and the scored accuracy,
-// then renders README.md from README.template.md ({{key}} placeholders). `--check` fails if README.md is stale.
+// One source for every number on every surface. Builds docs/readme/facts.json from the recorded runs and the scored accuracy,
+// then renders README.md from docs/readme/README.template.md ({{key}} placeholders). `--check` fails if README.md is stale.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 const acc = JSON.parse(readFileSync("public/samples/accuracy.json", "utf8"));
 const run = (id: string) => JSON.parse(readFileSync(`public/samples/${id}/run.json`, "utf8"));
@@ -25,7 +25,18 @@ const tapeTable = ["| Window | Where | Tape | Measure Once | Difference |", "|--
   })].join("\n");
 const measured = acc.rows.filter((r: any) => r.error_mm !== null);
 const plain = measured.filter((r: any) => !r.recess), recessRows = measured.filter((r: any) => r.recess);
+// Had I cut the pole to the measurement, would it still fit the width the tape measured? (band 15 to 20 cm, 10 cm works)
+const ids = JSON.parse(readFileSync("public/samples/index.json", "utf8")).samples.map((s: any) => s.id);
+const fits = measured.map((r: any) => {
+  const id = ids.find((i: string) => { const x = run(i); return x.ok && Math.round(x.widthMm) === r.measured_mm; });
+  const o = run(id).options[0], len = o.cutToMm ?? o.stockCm * 10, over = (len - r.tape_mm) / 2;
+  return { over, ok: over >= 100 && over <= 250, band: over >= 150 && over <= 200 };
+});
+const errsAll = measured.map((r: any) => Math.abs(r.error_mm)).sort((a: number, b: number) => a - b);
 const facts: Record<string, string | number> = {
+  pole_fit_ok: fits.filter((f) => f.ok).length, pole_fit_total: fits.length, pole_fit_band: fits.filter((f) => f.band).length,
+  pole_fit_overhangs: fits.map((f) => `${cm(f.over)} cm`).join(", "),
+  worst_err_cm: cm(errsAll[errsAll.length - 1]), median_err_cm: cm(errsAll[Math.floor((errsAll.length - 1) / 2)]),
   tape_table: tapeTable,
   windows_total: acc.rows.length, windows_measured: measured.length, windows_refused: acc.rows.length - measured.length,
   other_homes: acc.rows.filter((r: any) => r.window.startsWith("another home")).length,
@@ -46,7 +57,7 @@ const facts: Record<string, string | number> = {
   ref_hands_cap: ref("src/pipeline.ts", "handsCapped"),
   ref_hand_way: ref("src/pipeline.ts", "const inTheWay"),
   ref_polarity: ref("src/geometry.ts", "if (polarity === 1 && contrast < minContrast) continue;"),
-  sm_reply_quote: (() => { const m = sm.draft?.reply?.match(/If your 59 cm[^.]*\./); if (!m) throw new Error("recess reply lacks the second size"); return m[0]; })(),
+  sm_reply_quote: (() => { const m = sm.draft?.reply?.match(/[^.]*\b59 cm[^.]*\b94 cm[^.]*\./); if (!m) throw new Error("recess reply lacks the second size"); return m[0].trim(); })(),
   inbox_sizing_share: "1 in 4", inbox_reply_words_median: 77, inbox_reply_words_p90: 263, inbox_wait_hours_median: 10,
   inbox_threads_read: 125, inbox_sizing_threads: 29,
   lr_tape_cm: cm(row("living").tape_mm), lr_measured_cm: cm(row("living").measured_mm), lr_err_mm: signed(row("living").error_mm),
@@ -67,9 +78,9 @@ const facts: Record<string, string | number> = {
   ref_span: ref("src/span.ts", "export async function pickSpan"),
   ref_upload: ref("api/upload.ts", "export default async function handler"),
 };
-writeFileSync("facts.json", JSON.stringify(facts, null, 1) + "\n");
-if (existsSync("README.template.md")) {
-  const out = readFileSync("README.template.md", "utf8").replace(/\{\{(\w+)\}\}/g, (_, k) => { if (!(k in facts)) throw new Error(`missing fact ${k}`); return String(facts[k]); });
+writeFileSync("docs/readme/facts.json", JSON.stringify(facts, null, 1) + "\n");
+if (existsSync("docs/readme/README.template.md")) {
+  const out = readFileSync("docs/readme/README.template.md", "utf8").replace(/\{\{(\w+)\}\}/g, (_, k) => { if (!(k in facts)) throw new Error(`missing fact ${k}`); return String(facts[k]); });
   if (process.argv.includes("--check")) {
     if (/TBD/.test(out)) { console.error("README still has a TBD link"); process.exit(1); }
     if (!existsSync("README.md") || readFileSync("README.md", "utf8") !== out) { console.error("README.md is stale: run npx tsx scripts/facts.ts"); process.exit(1); }

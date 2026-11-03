@@ -80,6 +80,7 @@ const MODEL_NAMES = [
   [/^sam-3\.1$/, "SAM 3.1"],
   [/^sam-3\.1 \(video tracking\)$/, "SAM 3.1"],
   [/^muse-voice-transcribe/, "Muse Voice Transcribe"],
+  [/muse-spark-open/, "Muse Spark Open on Baseten"],
   [/^muse-spark/, "Muse Spark"],
   [/^muse-image/, "Muse Image"],
 ];
@@ -399,11 +400,11 @@ function spanLine(run) {
         : "the opening on the wall";
     const [L, R] = [sp.left, sp.right].sort();
     const w = sp.widthMm || run.widthMm;
-    return `Opening on the wall: <b>${cm1(w)} cm</b>. Muse Spark picked lines ${esc(L)} and ${esc(R)} (${what}${votes ? ", " + votes : ""}); the window frame inside is ${cm1(sp.frameWidthMm)} cm.`;
+    return `picked lines <b>${esc(L)}</b> and <b>${esc(R)}</b> as the edges the pole spans: ${what}${votes ? `, the same pick in ${votes}` : ""}. The window frame inside it is ${cm1(sp.frameWidthMm)} cm.`;
   }
   if (/agreed with the outline/.test(sp.votes || "") && m)
-    return `Muse Spark checked which edges ${spans} and agreed with the measured outline (${votes}).`;
-  return `Muse Spark checked which edges ${spans}. ${esc(cap(sp.votes || "the frames didn't agree on a wider opening"))}, so I kept the measured outline.`;
+    return `looked at every edge on the wall and agreed the measured outline is what ${spans} (${votes}).`;
+  return `looked at every edge on the wall. ${esc(cap(sp.votes || "the frames didn't agree on a wider opening"))}, so the measured outline stands.`;
 }
 
 // The blind sizes from the example catalogue, in place of my pole.
@@ -455,7 +456,8 @@ function renderFacts(run, id, still = false) {
   let html = `<div>
     <p class="fact-label">${opening ? "Opening width" : "Frame width"}</p>
     <p class="numeral"><span id="fw">${reduce ? cm1(run.widthMm) : "0.0"}</span><span class="unit">cm</span></p>
-    <p class="fact-sub">${opening ? "Frame measured" : "Measured"} on ${used} frame${used === 1 ? "" : "s"}${spread ? `, within ${spread} of each other` : ""}</p>
+    <p class="fact-sub">Measured on ${used} frame${used === 1 ? "" : "s"}${run.spreadMm != null ? `, which agree within \u00b1${cm1(run.spreadMm / 2)} cm` : ""}</p>
+    ${sl ? `<p class="fact-span"><span class="spark-tag">Muse Spark</span> ${sl}</p>` : ""}
   </div>`;
   if (blinds) html += blindFacts(run);
   if (o && !blinds) {
@@ -469,7 +471,6 @@ function renderFacts(run, id, still = false) {
   }
   // the working: for anyone who wants to check it, out of the way for everyone else
   const more = [];
-  if (sl) more.push(`<p>${sl}</p>`);
   const thumbs = frameThumbs(run, id, isLive);
   if (thumbs) more.push(`<div><p>Each frame's reading</p>${thumbs}</div>`);
   if (o && !blinds && (o.twoPiece || o.brackets)) more.push(`<p>${o.twoPiece ? "The pole comes in two pieces with a centre joint. " : ""}${o.brackets ? `${o.brackets} brackets. ` : ""}Plus a 9 cm finial each end.</p>`);
@@ -1119,20 +1120,41 @@ async function loadAccuracy() {
             <p class="acc-refused">Refused: ${esc(why)}</p><p class="acc-err ok-r">Asked for a re-film</p></li>`;
         }
         const e = r.error_mm != null ? r.error_mm : r.measured_mm - r.tape_mm;
+        const f = poleFit(r);
+        const fitLine = f ? `<span class="acc-fit${f.ok ? "" : " no"}">With the tape's width, the pole I'd have sent sits ${cm1(f.overhangMm)} cm past each side${f.inBand ? ", inside my usual 15 to 20 cm" : f.ok ? ", still a fit" : ", too short"}</span>` : "";
         return `<li><p class="acc-name">${name(r.window)}</p>
-          <div class="acc-bars" role="img" aria-label="Tape ${cm1(r.tape_mm)} cm, Measure Once ${cm1(r.measured_mm)} cm">
-            <span class="acc-bar t" style="width:${pct(r.tape_mm)}"></span><span class="acc-bar m" style="width:${pct(r.measured_mm)}"></span></div>
+          <div class="acc-bars-wrap"><div class="acc-bars" role="img" aria-label="Tape ${cm1(r.tape_mm)} cm, Measure Once ${cm1(r.measured_mm)} cm">
+            <span class="acc-bar t" style="width:${pct(r.tape_mm)}"></span><span class="acc-bar m" style="width:${pct(r.measured_mm)}"></span></div>${fitLine}</div>
           <p class="acc-err">${e > 0 ? "+" : e < 0 ? "\u2212" : ""}${cm1(Math.abs(e))} cm<small>${cm1(r.tape_mm)} by tape${r.recess ? ", recess" : ""}</small></p></li>`;
       })
       .join("");
     $("accKey").hidden = false;
-    const plain = rows.filter((r) => r.measured_mm != null && !r.recess);
-    if (plain.length) $("statErr").textContent = `${cm1(Math.max(...plain.map((r) => Math.abs(r.measured_mm - r.tape_mm))))} cm`;
-    const sm = data.summary;
-    if (sm?.refusalsExpected) $("statRefuse").textContent = `${sm.refusedCorrectly} of ${sm.refusalsExpected}`;
+    const measured = rows.filter((r) => r.measured_mm != null);
+    if (measured.length) {
+      const errs = measured.map((r) => Math.abs(r.measured_mm - r.tape_mm)).sort((x, y) => x - y);
+      const med = errs.length % 2 ? errs[(errs.length - 1) / 2] : (errs[errs.length / 2 - 1] + errs[errs.length / 2]) / 2;
+      $("statErr").textContent = `${cm1(med)} cm`;
+      $("statErrNote").textContent = `median error against a steel tape, over the ${measured.length} windows it measured (worst ${cm1(errs[errs.length - 1])} cm)`;
+      const fits = measured.map(poleFit).filter(Boolean);
+      if (fits.length) {
+        $("statFit").textContent = `${fits.filter((f) => f.ok).length} of ${fits.length}`;
+        $("statFitNote").textContent = "poles it chose would still have fitted the width the tape measured";
+      }
+    }
   } catch {
     /* the section keeps its heading */
   }
+}
+
+// The question that matters: had I cut the pole to this measurement, would it still fit the window the tape measured?
+// Overhang each side = (the cut length - the tape's width) / 2; my band is 15 to 20 cm, and 10 cm still works.
+function poleFit(r) {
+  const run = [...state.runs.values()].find((x) => x?.ok && Math.round(x.widthMm) === r.measured_mm);
+  const o = run?.options?.[0];
+  if (!o) return null;
+  const len = o.cutToMm ?? o.stockCm * 10;
+  const overhangMm = (len - r.tape_mm) / 2;
+  return { overhangMm, inBand: overhangMm >= 150 && overhangMm <= 200, ok: overhangMm >= 100 && overhangMm <= 250 };
 }
 
 // the intro's buttons: watch a recorded run, or try your own

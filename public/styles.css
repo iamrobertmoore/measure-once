@@ -235,6 +235,9 @@ a { color: inherit; }
 }
 .numeral .unit { font-size: .3em; font-weight: 600; font-stretch: 100%; color: var(--muted); margin-left: .14em; letter-spacing: 0; }
 .fact-sub { font-size: 14px; color: var(--muted); }
+.fact-span { font-size: 14px; line-height: 1.5; color: var(--muted); margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: rgba(255,201,60,.07); border: 1px solid rgba(255,201,60,.22); }
+.fact-span b { color: var(--tape); font-weight: 700; }
+.spark-tag { display: inline-block; font-size: 11.5px; font-weight: 700; color: #0a1424; background: var(--tape); border-radius: 4px; padding: 1px 6px; margin-right: 4px; }
 .fact-block { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
 .fact-main { font-size: 26px; font-weight: 720; font-stretch: 92%; line-height: 1.12; margin-top: 6px; letter-spacing: -0.01em; }
 .fact-line { font-size: 15px; margin-top: 8px; display: flex; align-items: center; gap: 10px; }
@@ -319,11 +322,11 @@ a { color: inherit; }
 .pole-view figcaption { font-size: 12.5px; color: var(--faint); margin-top: 8px; }
 
 /* before and after: the pole Muse Image painted */
-.compare { margin-top: 22px; opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
+.compare { margin: 22px auto 0; max-width: 980px; opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
 .compare.shown { opacity: 1; transform: none; }
 .compare[hidden] { display: none; }
 .compare-frame {
-  position: relative; aspect-ratio: 21 / 9; border-radius: 10px; overflow: hidden; background: var(--panel);
+  position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--panel);
   --pos: 50%; touch-action: pan-y; user-select: none; border: 1px solid var(--line);
 }
 .cmp-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; }
@@ -395,7 +398,11 @@ a { color: inherit; }
 .acc li { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 7.5rem; gap: 24px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
 .acc-name { font-size: 15px; font-weight: 600; }
 .acc-name small { display: block; font-size: 13px; color: var(--faint); font-weight: 500; margin-top: 2px; }
+.acc-bars-wrap { display: grid; gap: 6px; }
 .acc-bars { position: relative; height: 26px; }
+.acc-fit { font-size: 13px; color: var(--muted); }
+.acc-fit::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-right: 8px; vertical-align: 1px; }
+.acc-fit.no::before { background: var(--cut); }
 .acc-bar { position: absolute; left: 0; height: 6px; border-radius: 3px; }
 .acc-bar.t { top: 4px; background: rgba(234,240,247,.38); }
 .acc-bar.m { top: 15px; background: var(--tape); }
@@ -464,7 +471,7 @@ a { color: inherit; }
   .how-steps li, .how-steps li + li { padding: 22px 0 0; }
   .how-steps li + li::before { left: 0; }
   .acc li { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; }
-  .acc-bars { grid-column: 1 / -1; grid-row: 2; }
+  .acc-bars-wrap { grid-column: 1 / -1; grid-row: 2; }
   .foot { margin-top: 88px; padding: 28px 16px 44px; }
 }
 

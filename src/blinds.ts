@@ -23,10 +23,12 @@ export type BlindOption = { fit: "inside the recess" | "outside, standard" | "ou
 export function blindOptions(m: { openingMm: number; recess: boolean; heightMm: number | null }): BlindOption[] {
   const out: BlindOption[] = [];
   const round5 = (v: number) => Math.floor(v / 5) * 5; // made to the nearest 5 mm, rounded down so it never binds
-  if (m.recess) out.push({ fit: "inside the recess", widthMm: round5(m.openingMm - blinds.insideDeductMm), dropMm: m.heightMm ? round5(m.heightMm - blinds.insideDeductMm) : null, overlapEachSideMm: 0, note: "sits inside the reveals; the window's own frame stays visible" });
   for (const [fit, ov] of [["outside, standard", blinds.outsideOverlapMm], ["outside, blackout", blinds.blackoutOverlapMm]] as const) {
     out.push({ fit, widthMm: round5(m.openingMm + 2 * ov), dropMm: m.heightMm ? round5(m.heightMm + 2 * blinds.dropOverlapMm) : null, overlapEachSideMm: ov, note: fit.endsWith("blackout") ? "wider overlap so less light gets round the sides" : "covers the opening with a little to spare each side" });
   }
+  // Inside the recess, a blind has only millimetres to spare and a video measurement can be a few centimetres out,
+  // so this size is a guide: the buyer checks the recess with a tape before ordering it.
+  if (m.recess) out.push({ fit: "inside the recess", widthMm: round5(m.openingMm - blinds.insideDeductMm), dropMm: m.heightMm ? round5(m.heightMm - blinds.insideDeductMm) : null, overlapEachSideMm: 0, note: "a guide only: check the recess width with a tape before ordering, as an inside blind has to be exact" });
   return out.filter((o) => o.widthMm >= blinds.minWidthMm && o.widthMm <= blinds.maxWidthMm);
 }
 
@@ -46,7 +48,7 @@ ${JSON.stringify(facts, null, 1)}
 
 What the buyer said in the clip: "${input.transcript || "(nothing)"}"
 
-Draft my reply, warm and practical, British English, first person, no em dashes, under 120 words, signed "Best wishes". Give the width to order for each fit option${input.recess ? " (inside the recess first, since it's set back)" : ""}. ${input.heightMm ? "Give the drop too." : "The drop couldn't be measured from the clip: ask them to measure the height and say which edges."} Return JSON: {"reply": string, "questions": string[]}`;
+Draft my reply, warm and practical, British English, first person, no em dashes, under 120 words, signed "Best wishes". Give the width to order for each fit option.${input.recess ? " For the inside-the-recess size, say plainly that it is a guide and ask them to check the recess width with a tape before ordering it, because a measurement from a video can be a few centimetres out and a blind inside a recess has to be exact." : ""} ${input.heightMm ? "Give the drop too." : "The drop couldn't be measured from the clip: ask them to measure the height and say which edges."} Return JSON: {"reply": string, "questions": string[]}`;
   let last: any;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Measure Once: sized from a 10-second video</title>
-<meta name="description" content="A buyer films their window with a sheet of A4 on the wall. Measure Once works out the width to the millimetre, picks the pole and the cut, and drafts the seller's reply.">
+<meta name="description" content="A buyer films their window with a sheet of A4 on the wall. Measure Once measures the width from the sheet's known size, picks the pole and the cut, and drafts the seller's reply.">
 <meta name="theme-color" content="#08111f">
 <link rel="preload" href="fonts/mona-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
@@ -28,7 +28,7 @@
 
 <section class="intro" aria-labelledby="introTitle">
   <h1 id="introTitle">Your buyer films the window. <span class="dim">You send the right size.</span></h1>
-  <p class="intro-lede">Made-to-measure means a wrong number costs a whole order. The buyer tapes a sheet of A4 to the wall and films for 10 seconds. Measure Once works out the width to the millimetre, picks the pole and where to cut it, and drafts your reply. You check it and press send.</p>
+  <p class="intro-lede">A cut pole can't come back, so a wrong number costs a whole order. The buyer tapes a sheet of A4 to the wall and films the window for a few seconds. Measure Once measures the width from the sheet's known size, picks the pole and where to cut it, and drafts your reply. You check it and press send.</p>
   <div class="intro-ctas">
     <a class="btn btn-tape" href="#desk" id="watchBtn">Watch it measure a window</a>
     <a class="btn btn-ghost" href="#desk" data-yours>Try it on your own window</a>
@@ -39,9 +39,9 @@
     <p class="chip chip-pole" aria-hidden="true"><i></i><span><b>300 cm pole, cut to 255 cm</b>Reply drafted, ready to send</span></p>
   </figure>
   <ul class="stats" id="stats" aria-label="Checked against a steel tape">
-    <li><b id="statErr">2.3 cm</b><span>worst error on plain windows, against a steel tape</span></li>
-    <li><b id="statRefuse">3 of 3</b><span>unusable clips refused, not guessed</span></li>
-    <li><b id="statTime">about 60 s</b><span>from clip to drafted reply</span></li>
+    <li><b>1 in 4</b><span>of my Etsy buyer threads ask which size to order, and wait a median 10 hours for my answer</span></li>
+    <li><b id="statErr">2.3 cm</b><span id="statErrNote">median error against a steel tape, on every window it measured</span></li>
+    <li><b id="statFit">5 of 5</b><span id="statFitNote">poles I'd have sent would still have fitted the tape's width</span></li>
   </ul>
 </section>
 
@@ -71,7 +71,7 @@
         <h2 id="tryTitle" class="pane-title">Measure your own window</h2>
         <ol class="try-steps">
           <li>Tape a sheet of A4 or US Letter flat on the wall, beside the window.</li>
-          <li>Film for about 10 seconds from across the room, with both sides of the window in shot. Say what you'd like, as a buyer would.</li>
+          <li>Film for 10 to 30 seconds from across the room, with both sides of the window in shot. Say what you'd like, as a buyer would.</li>
           <li>Pick the clip here. Two or three photos work too.</li>
         </ol>
         <form class="try-form" id="tryForm" novalidate>
@@ -98,7 +98,7 @@
             </div>
             <button type="submit" class="btn btn-tape" id="tryGo" disabled>Measure my window</button>
           </div>
-          <p class="try-note">Your clip isn't stored.</p>
+          <p class="try-note">Your browser picks 8 sharp frames and the sound; they go to Meta's model API to be measured, and nothing is stored.</p>
           <p class="run-status" id="tryStatus" role="status" aria-live="polite"></p>
           <ul class="try-frames" id="tryFrames" aria-label="The frames I'm sending" hidden></ul>
         </form>
@@ -225,7 +225,7 @@
 <section class="proof" id="proof" aria-labelledby="proofTitle">
   <div class="proof-head">
     <h2 id="proofTitle" class="sec-title">Checked against a steel tape</h2>
-    <p class="proof-sub">Seven real windows in three homes, each measured by hand and filmed the way a buyer would. Where the clip isn't good enough, it says so and asks for a re-film.</p>
+    <p class="proof-sub" id="proofSub">Seven real windows, four of them in other people's homes, each filmed the way a buyer would and measured by hand with a steel tape. Two clips weren't good enough to measure, so it asked for a re-film instead of guessing.</p>
   </div>
   <ol class="acc" id="accTable" aria-label="Each window, tape against Measure Once"></ol>
   <p class="acc-key" id="accKey" hidden><i class="k-tape"></i>Steel tape <i class="k-mo"></i>Measure Once</p>

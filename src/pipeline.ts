@@ -173,7 +173,7 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
   if (a.draft !== false) {
     const t1 = t();
     const hs2 = result.handSpan ? [Math.round(result.handSpan.leftPastFrameMm / 10), Math.round(result.handSpan.rightPastFrameMm / 10)] as [number, number] : undefined;
-    try { result.draft = await draftReply(api, { transcript, buyerMessage: a.buyerMessage, frameWidthMm: sizingMm, windowFrameMm: result.span?.adopted ? w.median : undefined, spreadMm: w.iqr, options: result.options, diameterMm: diameter, handSpanCm: hs2 }); result.models.push("muse-spark-1.3"); }
+    try { result.draft = await draftReply(api, { transcript, buyerMessage: a.buyerMessage, frameWidthMm: sizingMm, windowFrameMm: result.span?.adopted ? w.median : undefined, spreadMm: w.iqr, options: result.options, diameterMm: diameter, handSpanCm: hs2 }); result.models.push(result.draft.ranOn || "muse-spark-1.3"); }
     catch (e: any) { result.reason = `reply draft failed: ${e.message}`; }
     timings.draftMs = t() - t1;
   }
@@ -254,7 +254,7 @@ export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buf
   let per = per0, idx = picked;
   if (handFree.length >= 4) { per = handFree.map((x) => per0[x.k]); idx = handFree.map((x) => x.i); timings.framesWithHandsSetAside = picked.length - handFree.length; }
   const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0, minFrames: input.minFrames, seller: input.seller });
-  r.models = ["sam-3.1", ...(input.mp4 ? ["sam-3.1 (video tracking: hands)"] : []), "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.startsWith("muse-spark"))];
+  r.models = ["sam-3.1", ...(input.mp4 ? ["sam-3.1 (video tracking: hands)"] : []), "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.includes("muse-spark"))];
   return { ...r, fps: input.fps };
 }
 

@@ -1,6 +1,7 @@
 // Local server: npm start  -> http://localhost:3000  (static page + the same /api handlers the hosted site uses)
 import { createServer } from "node:http";
 if (!process.env.MODEL_API_KEY && !process.env.MODEL_API_KEY_FILE) process.env.MODEL_API_KEY_FILE = ".secrets/meta_api_key"; // local convenience only
+if (!process.env.BASETEN_API_KEY && !process.env.BASETEN_API_KEY_FILE) process.env.BASETEN_API_KEY_FILE = ".secrets/baseten_api_key"; // used only if present
 import { readFile, stat } from "node:fs/promises";
 import { join, extname, normalize } from "node:path";
 import run from "./api/run.ts";
