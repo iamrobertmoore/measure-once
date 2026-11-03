@@ -208,7 +208,7 @@ function renderList() {
       const st = state.runs.has(s.id) || state.live.has(s.id) ? statusLine(run) : { text: "Loading", bad: false };
       return `<li><button type="button" class="clip-item" data-id="${esc(s.id)}" aria-current="${s.id === state.current}">
         <img class="clip-thumb" src="samples/${esc(s.id)}/${esc(s.thumb || "hero.jpg")}" alt="" loading="lazy">
-        <span><span class="clip-name">${esc(run?.title || s.title)}</span>
+        <span class="clip-text"><span class="clip-name">${esc(run?.title || s.title)}</span>
         <span class="clip-status${st.bad ? " bad" : ""}">${esc(st.text)}</span></span>
       </button></li>`;
     })
@@ -238,6 +238,13 @@ async function select(id) {
   state.current = id;
   state.shown = id;
   document.querySelectorAll(".clip-item").forEach((b) => b.setAttribute("aria-current", String(b.dataset.id === id)));
+  // keep the picked clip in view in the strip, without moving the page
+  const tab = document.querySelector(`.clip-item[data-id="${CSS.escape(id)}"]`);
+  const strip = document.querySelector(".lists");
+  if (tab && strip) {
+    const t = tab.getBoundingClientRect(), r = strip.getBoundingClientRect();
+    if (t.left < r.left || t.right > r.right) strip.scrollBy({ left: t.left - r.left - 14, behavior: "smooth" });
+  }
   setSam(false, true);
   if (id === YOURS && (!state.runs.has(YOURS) || mine.formOpen || mine.busy)) {
     hidePaneError();
@@ -430,7 +437,7 @@ function renderFacts(run, id, still = false) {
     const n = (run.frames || []).length;
     el.innerHTML = `<div>
       <p class="fact-label">Couldn't measure this one</p>
-      <p class="fail-title">${esc(f.fix)}</p>
+      <p class="fact-fail">${esc(f.fix)}</p>
       <p class="fact-sub">${n ? `I checked ${n} frames from the clip and none gave a reading I'd trust, so I won't guess a size.` : "I won't guess a size from this clip."}</p>
       ${frameThumbs(run, id, isLive)}
     </div>`;
@@ -448,34 +455,31 @@ function renderFacts(run, id, still = false) {
   let html = `<div>
     <p class="fact-label">${opening ? "Opening width" : "Frame width"}</p>
     <p class="numeral"><span id="fw">${reduce ? cm1(run.widthMm) : "0.0"}</span><span class="unit">cm</span></p>
-    <p class="fact-sub">${opening ? "Frame measured" : "Measured"} on ${used} frame${used === 1 ? "" : "s"}${spread ? `, spread ${spread}` : ""}</p>
-    ${frameThumbs(run, id, isLive)}
-    ${sl ? `<p class="fact-span">${sl}</p>` : ""}
+    <p class="fact-sub">${opening ? "Frame measured" : "Measured"} on ${used} frame${used === 1 ? "" : "s"}${spread ? `, within ${spread} of each other` : ""}</p>
   </div>`;
   if (blinds) html += blindFacts(run);
   if (o && !blinds) {
     const cut = o.cutToMm != null && o.cutPerEndMm > 0;
     html += `<div class="fact-block">
-      <p class="fact-label">The pole I'd send</p>
+      <p class="fact-label">The pole to send</p>
       <p class="fact-main">${esc(optionTitle(o))}</p>
       ${cut ? `<p class="fact-line"><i class="cutmark" aria-hidden="true"></i>${cm1(o.cutPerEndMm)} cm off each end</p>` : `<p class="fact-line"><i class="polemark" aria-hidden="true"></i>No cutting needed</p>`}
       <p class="fact-line">${cm1(o.overhangEachSideMm)} cm past the ${edge} each side</p>
-      <p class="fact-line muted">${o.twoPiece ? "Comes in two pieces with a centre joint. " : ""}${o.brackets ? `${o.brackets} brackets. ` : ""}Plus 9 cm finial each end.</p>
     </div>`;
   }
+  // the working: for anyone who wants to check it, out of the way for everyone else
+  const more = [];
+  if (sl) more.push(`<p>${sl}</p>`);
+  const thumbs = frameThumbs(run, id, isLive);
+  if (thumbs) more.push(`<div><p>Each frame's reading</p>${thumbs}</div>`);
+  if (o && !blinds && (o.twoPiece || o.brackets)) more.push(`<p>${o.twoPiece ? "The pole comes in two pieces with a centre joint. " : ""}${o.brackets ? `${o.brackets} brackets. ` : ""}Plus a 9 cm finial each end.</p>`);
   if (alt && !blinds) {
     const note = (alt.note || "").split(";").slice(1).join(";").trim();
-    html += `<div class="fact-block">
-      <p class="fact-label">Also fits</p>
-      <p class="fact-alt"><b>${esc(optionTitle(alt))}</b>${alt.cutToMm != null && alt.cutPerEndMm > 0 ? `, ${cm1(alt.cutPerEndMm)} cm off each end` : ""}, ${cm1(alt.overhangEachSideMm)} cm past the ${edge} each side.${note ? " " + esc(cap(note)) + "." : ""}</p>
-    </div>`;
+    more.push(`<p>Also fits: <b>${esc(optionTitle(alt))}</b>${alt.cutToMm != null && alt.cutPerEndMm > 0 ? `, ${cm1(alt.cutPerEndMm)} cm off each end` : ""}, ${cm1(alt.overhangEachSideMm)} cm past the ${edge} each side.${note ? " " + esc(cap(note)) + "." : ""}</p>`);
   }
-  if (run.handSpan) {
-    html += `<div class="fact-block">
-      <p class="fact-label">${id === YOURS ? "Where you pointed" : "Where they pointed"}</p>
-      <p class="fact-hands">${esc(handsLine(run.handSpan, edge))}</p>
-    </div>`;
-  }
+  if (run.handSpan) more.push(`<p>${esc(handsLine(run.handSpan, edge))}</p>`);
+  if (more.length)
+    html += `<details class="more-facts"><summary>How it got ${cm1(run.widthMm)} cm</summary><div class="more-in">${more.join("")}</div></details>`;
   el.innerHTML = html;
 }
 
@@ -1093,31 +1097,62 @@ $("againBtn").addEventListener("click", () => {
   $("tryTitle").scrollIntoView({ block: "nearest" });
 });
 
-// ---------- accuracy table ----------
+// ---------- accuracy: tape against Measure Once ----------
 async function loadAccuracy() {
   try {
     const res = await fetch("samples/accuracy.json");
     if (!res.ok) return;
     const data = await res.json();
-    const rows = (data.rows || []).filter((r) => r && r.tape_mm != null && r.measured_mm != null);
+    const rows = (data.rows || []).filter((r) => r && r.tape_mm != null);
     if (!rows.length) return;
-    const fmt = (n) => (n == null || isNaN(n) ? "" : Number(n).toFixed(0));
-    const err = (r) => (r.error_mm != null ? r.error_mm : r.measured_mm - r.tape_mm);
-    $("accTable").innerHTML =
-      `<thead><tr><th scope="col">Window</th><th scope="col">Tape (mm)</th><th scope="col">Measured (mm)</th><th scope="col">Off by (mm)</th></tr></thead><tbody>` +
-      rows
-        .map((r) => {
-          const e = err(r);
-          return `<tr><td>${esc(cap(r.window))}</td><td>${fmt(r.tape_mm)}</td><td>${fmt(r.measured_mm)}</td><td>${e > 0 ? "+" : e < 0 ? "-" : ""}${fmt(Math.abs(e))}</td></tr>`;
-        })
-        .join("") +
-      `</tbody>`;
-    $("accBtn").hidden = false;
-    $("accBtn").addEventListener("click", () => $("accDialog").showModal());
+    const top = Math.max(...rows.map((r) => Math.max(r.tape_mm, r.measured_mm || 0)));
+    const pct = (mm) => `${((mm / top) * 100).toFixed(2)}%`;
+    const name = (w) => {
+      const m = String(w).match(/^(.*?)(?: \((.*)\))?$/);
+      return `${esc(cap(m[1]))}${m[2] ? `<small>${esc(m[2])}</small>` : ""}`;
+    };
+    $("accTable").innerHTML = rows
+      .map((r) => {
+        if (r.measured_mm == null) {
+          const why = cap(String(r.note || "").split(";")[0]);
+          return `<li><p class="acc-name">${name(r.window)}<small>Tape: ${cm1(r.tape_mm)} cm</small></p>
+            <p class="acc-refused">Refused: ${esc(why)}</p><p class="acc-err ok-r">Asked for a re-film</p></li>`;
+        }
+        const e = r.error_mm != null ? r.error_mm : r.measured_mm - r.tape_mm;
+        return `<li><p class="acc-name">${name(r.window)}</p>
+          <div class="acc-bars" role="img" aria-label="Tape ${cm1(r.tape_mm)} cm, Measure Once ${cm1(r.measured_mm)} cm">
+            <span class="acc-bar t" style="width:${pct(r.tape_mm)}"></span><span class="acc-bar m" style="width:${pct(r.measured_mm)}"></span></div>
+          <p class="acc-err">${e > 0 ? "+" : e < 0 ? "\u2212" : ""}${cm1(Math.abs(e))} cm<small>${cm1(r.tape_mm)} by tape${r.recess ? ", recess" : ""}</small></p></li>`;
+      })
+      .join("");
+    $("accKey").hidden = false;
+    const plain = rows.filter((r) => r.measured_mm != null && !r.recess);
+    if (plain.length) $("statErr").textContent = `${cm1(Math.max(...plain.map((r) => Math.abs(r.measured_mm - r.tape_mm))))} cm`;
+    const sm = data.summary;
+    if (sm?.refusalsExpected) $("statRefuse").textContent = `${sm.refusedCorrectly} of ${sm.refusalsExpected}`;
   } catch {
-    /* no table, no link */
+    /* the section keeps its heading */
   }
 }
+
+// the intro's buttons: watch a recorded run, or try your own
+$("watchBtn").addEventListener("click", (e) => {
+  e.preventDefault();
+  const first = state.samples[0]?.id;
+  $("desk").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  if (!first) return;
+  if (state.current === first) {
+    setSam(false, true);
+    hero.play();
+  } else select(first);
+});
+document.querySelectorAll("[data-yours]").forEach((a) =>
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    $("desk").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    select(YOURS);
+  }),
+);
 
 // ---------- boot ----------
 async function boot() {

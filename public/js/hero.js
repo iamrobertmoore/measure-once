@@ -2,15 +2,15 @@
 // then the photo flattens into a front-on elevation drawing with the pole on it.
 import { applyH, invertH, seg, lerp, easeOut, easeInOut, backOut, clamp01 } from "./geom.js";
 
-const DEEP = [18, 58, 107];
+const DEEP = [12, 30, 56];
 const C = {
-  deep: "#123a6b",
-  tape: "#f2c230",
-  tapeEdge: "#c7961b",
-  cut: "#e2553a", // cut red, nudged a touch lighter so it reads on the deep blue
+  deep: "#0c1e38",
+  tape: "#ffc93c",
+  tapeEdge: "#cf9a14",
+  cut: "#ff6a4d", // cut red, light enough to read on the night blue
   tapeInk: "#2b2108",
-  line: "#eef3fb",
-  ink: "#17301f",
+  line: "#eaf0f7",
+  ink: "#0a1424",
 };
 const FINIAL_MM = 90;
 const POLE_ABOVE_MM = 100;
@@ -125,8 +125,8 @@ export class Hero {
     await img.decode();
     try {
       await Promise.all([
-        document.fonts.load('700 20px "Archivo"'),
-        document.fonts.load('500 20px "Archivo"'),
+        document.fonts.load('700 20px "Mona Sans"'),
+        document.fonts.load('500 20px "Mona Sans"'),
       ]);
     } catch {
       /* fonts are a nicety */
@@ -1062,7 +1062,7 @@ export class Hero {
         const whose = this.run.id === "yours" ? "your clip" : "the buyer's clip";
         const sheet = this.paper.name === "US Letter" ? "US Letter" : "A4";
         this._text(`Front elevation, drawn from ${whose}. Scale from one sheet of ${sheet}.`, pad, H - pad - 2, {
-          size: Math.max(11, Math.round(13 * s)), color: C.line, weight: 500, align: "left", family: "Archivo", stretch: "normal",
+          size: Math.max(11, Math.round(13 * s)), color: C.line, weight: 500, align: "left", family: "Mona Sans", stretch: "normal",
         });
       }
       g.globalAlpha = 1;
@@ -1160,7 +1160,7 @@ export class Hero {
   }
 
   // ---------- primitives ----------
-  _font(size, weight = 600, stretch = "semi-condensed", family = "Archivo", italic = false) {
+  _font(size, weight = 600, stretch = "semi-condensed", family = "Mona Sans", italic = false) {
     const g = this.ctx;
     g.font = `${italic ? "italic " : ""}${weight} ${stretch} ${size}px "${family}", sans-serif`;
     if ("fontStretch" in g) {
@@ -1175,7 +1175,7 @@ export class Hero {
   _text(str, x, y, o = {}) {
     const g = this.ctx;
     const size = o.size || 13;
-    this._font(size, o.weight || 600, o.stretch || "semi-condensed", o.family || "Archivo", o.italic);
+    this._font(size, o.weight || 600, o.stretch || "semi-condensed", o.family || "Mona Sans", o.italic);
     g.textAlign = o.align || "center";
     g.textBaseline = "middle";
     const prev = g.globalAlpha;
