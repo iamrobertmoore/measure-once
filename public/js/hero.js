@@ -126,7 +126,7 @@ export class Hero {
     try {
       await Promise.all([
         document.fonts.load('700 20px "Archivo"'),
-        document.fonts.load('600 20px "Bricolage"'),
+        document.fonts.load('500 20px "Archivo"'),
       ]);
     } catch {
       /* fonts are a nicety */
@@ -1062,7 +1062,7 @@ export class Hero {
         const whose = this.run.id === "yours" ? "your clip" : "the buyer's clip";
         const sheet = this.paper.name === "US Letter" ? "US Letter" : "A4";
         this._text(`Front elevation, drawn from ${whose}. Scale from one sheet of ${sheet}.`, pad, H - pad - 2, {
-          size: Math.max(11, Math.round(13 * s)), color: C.line, weight: 500, align: "left", family: "Bricolage", stretch: "normal",
+          size: Math.max(11, Math.round(13 * s)), color: C.line, weight: 500, align: "left", family: "Archivo", stretch: "normal",
         });
       }
       g.globalAlpha = 1;
