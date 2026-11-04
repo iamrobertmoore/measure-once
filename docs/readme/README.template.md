@@ -75,7 +75,15 @@ For my living room window it recommends the **{{lr_pole}}**, taking **{{lr_cut_e
 | **Muse Spark Open** (open weights, `meta-models/muse-spark-open`, served on Baseten) | Writes the reply: picks among the options the code computed and drafts it in my voice, reconciling the buyer's own numbers. On the {{open_runs}} recorded clips every draft passed the number check first time, in about {{open_secs}} s each. Every live run says which model wrote its draft | {{ref_open}} |
 | Muse Spark 1.3, writing (fallback) | Takes over the draft by itself if Baseten can't answer, so a run never stops | {{ref_spark}} |
 | Muse Image 1.0 | Turns a flat pole drawn in exact perspective into a photoreal pole on the buyer's wall | {{ref_image}} |
-| SAM 3.1 on Muse Image's output | Cuts out only the painted pole, so nothing else in the buyer's photo changes | {{ref_sam_pole}} |
+| SAM 3.1 on Muse Image's output | Cuts out only the painted pole, so nothing else in the buyer's photo changes, and checks the painted pole runs the full length that was drawn: under 95% it paints again, under 85% it shows the exact drawn pole instead | {{ref_sam_pole}}, {{ref_render_check}} |
+
+### Which model writes the reply
+
+Each of the 5 measured windows redrafted 3 times by each writer ({{writers_n}} drafts each), with the same numbers, the same prompt and the same number check (`scripts/compare-writers.ts`, results in [`public/samples/writers.json`](public/samples/writers.json)):
+
+{{writers_table}}
+
+Both are accurate; Muse Spark Open is about {{writers_speedup}} times faster, which matters when a buyer is waiting on the page, so it writes and the hosted model is the fallback. It writes longer than I asked, which I trim when I check the draft.
 
 The split is deliberate. The models see, choose, hear, write and paint. The numbers come from geometry and my catalogue, and the checker ({{ref_check}}) holds the reply to them.
 

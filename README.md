@@ -75,7 +75,18 @@ For my living room window it recommends the **300 cm pole cut to 255 cm**, takin
 | **Muse Spark Open** (open weights, `meta-models/muse-spark-open`, served on Baseten) | Writes the reply: picks among the options the code computed and drafts it in my voice, reconciling the buyer's own numbers. On the 5 recorded clips every draft passed the number check first time, in about 3 s each. Every live run says which model wrote its draft | [`src/open.ts:24`](src/open.ts#L24) |
 | Muse Spark 1.3, writing (fallback) | Takes over the draft by itself if Baseten can't answer, so a run never stops | [`src/agent.ts:96`](src/agent.ts#L96) |
 | Muse Image 1.0 | Turns a flat pole drawn in exact perspective into a photoreal pole on the buyer's wall | [`src/render.ts:52`](src/render.ts#L52) |
-| SAM 3.1 on Muse Image's output | Cuts out only the painted pole, so nothing else in the buyer's photo changes | [`src/render.ts:60`](src/render.ts#L60) |
+| SAM 3.1 on Muse Image's output | Cuts out only the painted pole, so nothing else in the buyer's photo changes, and checks the painted pole runs the full length that was drawn: under 95% it paints again, under 85% it shows the exact drawn pole instead | [`src/render.ts:60`](src/render.ts#L60), [`src/render.ts:79`](src/render.ts#L79) |
+
+### Which model writes the reply
+
+Each of the 5 measured windows redrafted 3 times by each writer (15 drafts each), with the same numbers, the same prompt and the same number check (`scripts/compare-writers.ts`, results in [`public/samples/writers.json`](public/samples/writers.json)):
+
+| Writer | Drafts | Passed the number check first time | Median time | Median length | Under the 120-word ask |
+|---|---|---|---|---|---|
+| Muse Spark Open, on Baseten | 15 | 15 of 15 | 3.4 s | 146 words | 2 of 15 |
+| Muse Spark 1.3, hosted | 15 | 15 of 15 | 17.1 s | 110 words | 13 of 15 |
+
+Both are accurate; Muse Spark Open is about 5 times faster, which matters when a buyer is waiting on the page, so it writes and the hosted model is the fallback. It writes longer than I asked, which I trim when I check the draft.
 
 The split is deliberate. The models see, choose, hear, write and paint. The numbers come from geometry and my catalogue, and the checker ([`src/agent.ts:133`](src/agent.ts#L133)) holds the reply to them.
 

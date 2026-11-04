@@ -44,12 +44,24 @@ const single = plain.flatMap((r: any) => {
   const x = run(ids.find((i: string) => { const y = run(i); return y.ok && Math.round(y.widthMm) === r.measured_mm; }));
   return x.frames.filter((f: any) => f.ok && f.widthMm).map((f: any) => Math.abs(f.widthMm - r.tape_mm));
 }).sort((a: number, b: number) => a - b);
+// Muse Spark Open against hosted Muse Spark 1.3 as the writer, same runs and same check (scripts/compare-writers.ts).
+const writers = (() => {
+  const w = JSON.parse(readFileSync("public/samples/writers.json", "utf8")).rows;
+  const med = (a: number[]) => { const b = [...a].sort((x, y) => x - y); return b[Math.floor((b.length - 1) / 2)]; };
+  const one = (name: string) => { const r = w.filter((x: any) => x.writer === name); return { n: r.length, first: r.filter((x: any) => x.ok && x.firstTime).length, secs: (med(r.map((x: any) => x.ms)) / 1000).toFixed(1), words: med(r.filter((x: any) => x.ok).map((x: any) => x.words)), short: r.filter((x: any) => x.ok && x.words <= 120).length }; };
+  const o = one("open"), s = one("muse-spark-1.3");
+  return { writers_table: ["| Writer | Drafts | Passed the number check first time | Median time | Median length | Under the 120-word ask |", "|---|---|---|---|---|---|",
+    `| Muse Spark Open, on Baseten | ${o.n} | ${o.first} of ${o.n} | ${o.secs} s | ${o.words} words | ${o.short} of ${o.n} |`,
+    `| Muse Spark 1.3, hosted | ${s.n} | ${s.first} of ${s.n} | ${s.secs} s | ${s.words} words | ${s.short} of ${s.n} |`].join("\n"),
+    writers_open_secs: o.secs, writers_speedup: Math.round(Number(s.secs) / Number(o.secs)), writers_spark_secs: s.secs, writers_n: o.n };
+})();
 const errsAll = measured.map((r: any) => Math.abs(r.error_mm)).sort((a: number, b: number) => a - b);
 const facts: Record<string, string | number> = {
   pole_fit_ok: fits.filter((f) => f.ok).length, pole_fit_total: fits.length, pole_fit_band: fits.filter((f) => f.band).length,
   pole_fit_overhangs: fits.map((f) => `${cm(f.over)} cm`).join(", "),
   worst_err_cm: cm(errsAll[errsAll.length - 1]), median_err_cm: cm(errsAll[Math.floor((errsAll.length - 1) / 2)]),
-  tape_table: tapeTable,
+  tape_table: tapeTable, ...writers,
+  ref_render_check: ref("src/render.ts", "best.coverage >= 0.85"),
   likely_inside: sure.filter((x) => x.inside).length, likely_holds: sure.filter((x) => x.holds).length, likely_total: sure.length,
   likely_half_cm: `${cm(Math.min(...sure.map((x) => x.half)))} to ${cm(Math.max(...sure.map((x) => x.half)))}`,
   single_frames: single.length, single_median_cm: cm(single[Math.floor((single.length - 1) / 2)]), single_worst_cm: cm(single[single.length - 1]),
