@@ -6,7 +6,7 @@
 
 <p align="center"><a href="{{live_url}}"><b>Try it live, on your own window</b></a> · <a href="{{live_url}}/buyer.html?shop=creationsfromrob">The buyer link</a> · <a href="{{video_url}}">The video (2:43)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
 
-I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles come in fixed lengths, the buyer cuts theirs down at home, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
+I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. It's a real shop, [Creationsfromrob](https://www.etsy.com/shop/creationsfromrob), open since 2020, with nearly 800 sales and a 4.7-star rating from 119 reviews, and every number below comes from my own inbox, my own windows and my own catalogue. Poles come in fixed lengths, the buyer cuts theirs down at home, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
 
 Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet and the window, and on full clips tracks their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark Open (Meta's open-weights model, on Baseten) drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
 
@@ -108,7 +108,7 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 
 ## Measured against a tape
 
-{{windows_total}} real windows filmed on a phone the way a buyer would: 3 in my house and {{other_homes}} in other homes. It measured {{windows_measured}}, each checked with a steel tape, and asked for a re-film on {{windows_refused}}. Plus 3 clips filmed to fail.
+{{windows_total}} real windows filmed on a phone the way a buyer would: 3 in my house and {{other_homes}} in other homes. I measured every tape figure myself with a steel tape, across the outside of the frame or, for a recess, across the opening at the wall face, where the pole goes. It measured {{windows_measured}}, each checked with a steel tape, and asked for a re-film on {{windows_refused}}. Plus 3 clips filmed to fail.
 
 {{tape_table}}
 
@@ -117,6 +117,8 @@ Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused {{refuse
 Over the {{windows_measured}} windows it measured, the median error is {{median_err_cm}} cm and the worst {{worst_err_cm}} cm; on the {{plain_count}} plain windows it's within {{plain_within_cm}} cm. The question that matters is whether the pole would fit: cut to each measurement, the pole sits {{pole_fit_overhangs}} past each side of the width the tape measured, so {{pole_fit_ok}} of {{pole_fit_total}} would fit ({{pole_fit_band}} inside my usual 15 to 20 cm). The {{recess_count}} recessed windows are the hard ones ({{recess_errs}}): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "{{sm_reply_quote}}"
 
 Each size also comes with a likely range, and the reply checks the pole against the whole of it, not just the middle. The tape was inside the range on {{likely_inside}} of {{likely_total}} windows and the chosen pole fits across all of it on {{likely_holds}} of {{likely_total}}; when it doesn't, the reply asks for a quick tape check before anything is cut.
+
+A steel tape isn't perfect either. On a recess or a chunky surround it's easy to be a few millimetres out, and a buyer measuring from the wrong edge can be centimetres out, which is the mistake a clip of the window catches. So read the tape column as the best reference I have, not ground truth.
 
 Two windows were refused rather than guessed: one had the sheet resting on top of the frame instead of flat on the wall, the other was filmed from a sharp side angle with one side hidden behind a machine. A refusal costs the buyer ten seconds of filming; a wrong size costs a pole.
 
