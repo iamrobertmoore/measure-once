@@ -19,27 +19,43 @@
 
 <main class="b-main" id="main">
   <section class="b-ask" id="ask">
-    <h1 id="askTitle">Send your window, get the right size</h1>
-    <p class="b-lede" id="askLede">Made-to-measure has to be right first time. Instead of measuring and guessing, film your window and your maker gets everything they need.</p>
-    <ol class="b-steps">
-      <li><b>Tape a sheet of A4</b> (or US Letter) flat on the wall beside the window.</li>
-      <li><b>Film for about 10 seconds</b> from across the room, with both sides of the window in shot. Say what you'd like.</li>
-      <li><b>Send it here.</b> Two or three photos work too.</li>
-    </ol>
-    <div class="b-pick" id="drop">
-      <label class="btn btn-tape" for="file">Choose your video or photos</label>
-      <input type="file" id="file" class="vh" accept="video/*,image/*" multiple>
-      <label class="btn btn-ghost b-cam" for="cam">Film it now</label>
-      <input type="file" id="cam" class="vh" accept="video/*" capture="environment">
-      <p class="b-chosen" id="chosen">Nothing chosen yet.</p>
+    <div class="b-copy">
+      <h1 id="askTitle">Film your window, get the right size</h1>
+      <p class="b-lede" id="askLede">Made-to-measure has to be right first time. Film your window and your maker gets everything they need.</p>
+      <ol class="b-steps">
+        <li><span><b>Tape a sheet of A4</b> (or US Letter) flat on the wall beside the window.</span></li>
+        <li><span><b>Film for about 10 seconds</b> from across the room, with both sides of the window in shot. Say what you'd like.</span></li>
+        <li><span><b>Send it here.</b> Two or three photos work too.</span></li>
+      </ol>
     </div>
-    <button type="button" class="btn btn-tape b-go" id="go" disabled>Measure my window</button>
-    <p class="run-status" id="status" role="status" aria-live="polite"></p>
-    <p class="b-note">Your clip isn't stored. The frames and sound go to Meta's model API to be measured, and only the result reaches your maker.</p>
+    <div class="b-card">
+      <div class="b-pick" id="drop">
+        <p class="b-pick-title">Your clip</p>
+        <label class="btn btn-ghost" for="cam">Film it now</label>
+        <input type="file" id="cam" class="vh" accept="video/*" capture="environment">
+        <label class="btn btn-ghost" for="file">Choose a video or photos</label>
+        <input type="file" id="file" class="vh" accept="video/*,image/*" multiple>
+        <p class="b-chosen" id="chosen">Nothing chosen yet.</p>
+      </div>
+      <button type="button" class="btn btn-tape b-go" id="go" disabled>Measure my window</button>
+      <p class="run-status" id="status" role="status" aria-live="polite"></p>
+      <p class="b-note">Your clip isn't stored. The frames and sound go to Meta's model API to be measured, and only the result reaches your maker.</p>
+    </div>
+    <figure class="b-example">
+      <div class="b-shot"><img src="samples/living-room/f44.jpg" alt="A window filmed from across the room, with a sheet of A4 taped flat on the wall to its left" loading="lazy"><span class="b-a4" aria-hidden="true">A4</span></div>
+      <figcaption>Like this: the whole window in shot, the sheet flat on the wall beside it.</figcaption>
+    </figure>
   </section>
 
   <section class="b-result" id="result" hidden aria-labelledby="resTitle">
-    <div class="b-hero"><canvas id="heroCanvas" role="img" aria-label="Your window, measured"></canvas></div>
+    <div class="b-left">
+      <div class="b-hero"><canvas id="heroCanvas" role="img" aria-label="Your window, measured"></canvas></div>
+      <ol class="b-next" aria-label="What happens next">
+        <li><b>You send it</b> with one tap. Nothing goes anywhere until you do.</li>
+        <li><b><span class="maker">Rob</span> checks the size</b> against the drawing of your window.</li>
+        <li><b>You get a reply</b> with exactly what to order, before anything is made.</li>
+      </ol>
+    </div>
     <div class="b-side">
       <p class="fact-label" id="resLabel">Your window</p>
       <p class="numeral"><span id="fw">0.0</span><span class="unit">cm</span></p>

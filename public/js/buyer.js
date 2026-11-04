@@ -120,7 +120,7 @@ async function show(run) {
   }
   $("resNote").textContent = `${shop.maker === "the maker" ? "The maker checks" : `${shop.maker} checks`} every size before anything is made, and replies to you directly.`;
   hero.mode = shop.seller === "blinds" ? "blinds" : "poles";
-  await hero.load(run, run.heroImage);
+  await hero.load(run, run.heroImage || `samples/${demo}/hero.jpg`);
   hero.play();
   $("result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -147,3 +147,7 @@ $("send").addEventListener("click", async () => {
 const restart = () => { state.run = null; $("result").hidden = true; $("refused").hidden = true; $("ask").hidden = false; $("send").disabled = false; $("send").innerHTML = `<span>Send this to <span class="maker">${esc(shop.maker)}</span></span>`; $("sendStatus").textContent = ""; window.scrollTo({ top: 0, behavior: "smooth" }); };
 $("again").addEventListener("click", restart);
 $("again2").addEventListener("click", restart);
+
+// ?demo=<recorded clip> shows that clip's recorded result, so the page can be seen without filming a window.
+const demo = new URLSearchParams(location.search).get("demo");
+if (demo && /^[\w-]+$/.test(demo)) fetch(`samples/${demo}/run.json`).then((r) => r.json()).then(show).catch(() => {});
