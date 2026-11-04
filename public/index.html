@@ -215,7 +215,7 @@
     <li>
       <span class="how-n">3</span>
       <h3>Measure</h3>
-      <p>Plain code turns the sheet's known size into millimetres. <b>Muse Spark</b> picks which edges the pole spans, say a recess, and the code measures between them.</p>
+      <p>Plain code turns the sheet's known size into millimetres. <b>Muse Spark Open</b>, Meta's open-weights model, picks which edges the pole spans, say a recess, and the code measures between them.</p>
     </li>
     <li>
       <span class="how-n">4</span>
@@ -228,13 +228,23 @@
 <section class="buylink" id="link" aria-labelledby="linkTitle">
   <div class="buylink-copy">
     <h2 id="linkTitle" class="sec-title">Put one link on your listing</h2>
-    <p>Any made-to-measure shop gets its own link. The buyer opens it on their phone, films the window and sees their size straight away. You get the measurement and a drafted reply by email, and nothing goes back to them until you've checked it.</p>
+    <p>Any made-to-measure shop gets its own link. The buyer opens it on their phone, films the window and sees their size in about a minute. You get the measurement and a drafted reply by email, and nothing goes back to them until you've checked it.</p>
     <div class="buylink-urls">
       <a class="btn btn-tape" href="buyer.html?shop=creationsfromrob">Open Rob's buyer link</a>
       <a class="btn btn-ghost" href="buyer.html?shop=example-blinds">Roller blind version</a>
       <a class="btn btn-ghost" href="buyer.html?shop=example-curtains">Curtains version</a>
     </div>
-    <p class="buylink-note">On this demo, the maker's email goes to a demo inbox.</p>
+    <form class="mklink" id="mkLink" autocomplete="off">
+      <p class="mklink-title">Make a link for your own shop</p>
+      <div class="mklink-row">
+        <label>Shop name <input id="mkName" required maxlength="60" placeholder="Helen's Poles"></label>
+        <label>Your first name <input id="mkMaker" maxlength="30" placeholder="Helen"></label>
+        <label>You make <select id="mkMakes"><option value="poles">Curtain poles</option><option value="blinds">Roller blinds</option><option value="curtains">Curtains</option></select></label>
+      </div>
+      <button class="btn btn-ghost" type="submit">Make my link</button>
+      <p class="mklink-out" id="mkOut" hidden><a id="mkUrl" href="#"></a> <button type="button" class="link-btn" id="mkCopy">Copy</button></p>
+    </form>
+    <p class="buylink-note">On this demo, the maker's email goes to a demo inbox; on a real shop it would go to yours.</p>
   </div>
   <ul class="quotes" aria-label="What other makers said">
     <li><p>"I get lovely photos of people's windows, but usually not the measurement I need! A quick video and a suggested size would give me something to work from."</p><span>Helen, York. Sells curtain poles on Etsy</span></li>

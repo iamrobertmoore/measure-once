@@ -5,6 +5,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { runClip } from "../src/pipeline.ts";
 import { loadSample, key } from "../src/live.ts";
 process.env.MODEL_API_KEY_FILE ??= ".secrets/meta_api_key";
+process.env.BASETEN_API_KEY_FILE ??= ".secrets/baseten_api_key";
+const OUT = process.env.SPAN_MODEL === "open" ? "public/samples/masked-open.json" : "public/samples/masked.json";
 const reps = Number(process.argv[2] || 1);
 const ids = ["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"];
 const rows: any[] = [];
@@ -18,4 +20,4 @@ for (const id of ids) {
     const y = rows[rows.length - 1]; console.log(id, y.ok, Math.round(y.widthMm), y.recess, "| recorded", Math.round(y.recordedWidthMm), y.recordedRecess, "|", y.votes, "|", y.why);
   }
 }
-writeFileSync("public/samples/masked.json", JSON.stringify({ ranAt: new Date().toISOString(), note: "buyer's lengths hidden from the edge pick", rows }, null, 1));
+writeFileSync(OUT, JSON.stringify({ ranAt: new Date().toISOString(), note: "buyer's lengths hidden from the edge pick", spanModel: process.env.SPAN_MODEL || "muse-spark-1.3", rows }, null, 1));

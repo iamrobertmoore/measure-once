@@ -482,7 +482,7 @@ function renderFacts(run, id, still = false) {
     <p class="numeral"><span id="fw">${reduce ? cm1(run.widthMm) : "0.0"}</span><span class="unit">cm</span></p>
     <p class="fact-likely">Likely ${cm1(likely(run).lo)} to ${cm1(likely(run).hi)} cm</p>
     <p class="fact-sub">Measured on ${used} frame${used === 1 ? "" : "s"}. The range adds how far ${run.span?.adopted ? "recessed" : "plain"} windows have been from a steel tape.</p>
-    ${sl ? `<p class="fact-span"><span class="spark-tag">Muse Spark</span> ${sl}</p>` : ""}
+    ${sl ? `<p class="fact-span"><span class="spark-tag">${(run.models || []).some((m) => /muse-spark-open.*which edges/.test(m)) ? "Muse Spark Open" : "Muse Spark"}</span> ${sl}</p>` : ""}
   </div>`;
   if (blinds) html += blindFacts(run);
   if (modeFor(run) === "curtains") html += curtainFacts(run);
@@ -1247,3 +1247,16 @@ async function boot() {
   loadAccuracy();
 }
 boot();
+
+// "Make a link for your own shop": a buyer link with the shop's name, the maker's name and what they make.
+(() => {
+  const f = document.getElementById("mkLink"); if (!f) return;
+  f.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const u = new URL("buyer.html", location.href);
+    u.searchParams.set("name", $("mkName").value.trim()); if ($("mkMaker").value.trim()) u.searchParams.set("maker", $("mkMaker").value.trim());
+    u.searchParams.set("makes", $("mkMakes").value);
+    $("mkUrl").href = u.href; $("mkUrl").textContent = u.href; $("mkOut").hidden = false;
+  });
+  $("mkCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("mkUrl").href); $("mkCopy").textContent = "Copied"; } catch { $("mkCopy").textContent = "Select and copy the link"; } });
+})();

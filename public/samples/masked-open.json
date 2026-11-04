@@ -1,0 +1,117 @@
+{
+ "ranAt": "2026-11-04T11:58:00.042Z",
+ "note": "buyer's lengths hidden from the edge pick",
+ "spanModel": "open",
+ "rows": [
+  {
+   "id": "living-room",
+   "ok": true,
+   "widthMm": 2186.6244761342773,
+   "recess": false,
+   "votes": "5 of 5 agreed with the outline",
+   "why": "A and B are outer trim/recess edges on wall face, not inner shutter frame",
+   "recordedWidthMm": 2198.0462899763866,
+   "recordedRecess": false,
+   "secs": 27.386
+  },
+  {
+   "id": "living-room",
+   "ok": true,
+   "widthMm": 2186.6245539273036,
+   "recess": false,
+   "votes": "5 of 5 agreed with the outline",
+   "why": "A-B are outer trim/recess opening at wall face, not inner shutter frame",
+   "recordedWidthMm": 2198.0462899763866,
+   "recordedRecess": false,
+   "secs": 81.673
+  },
+  {
+   "id": "bathroom",
+   "ok": true,
+   "widthMm": 1209.6902076780518,
+   "recess": false,
+   "votes": "3 of 5 agreed with the outline",
+   "why": "B/D are outside of trim/recess at wall face, C is inner frame inside recess",
+   "recordedWidthMm": 1209.6866404511238,
+   "recordedRecess": false,
+   "secs": 34.177
+  },
+  {
+   "id": "bathroom",
+   "ok": true,
+   "widthMm": 1209.694618122888,
+   "recess": false,
+   "votes": "4 of 5 agreed with the outline",
+   "why": "recess opening at wall face outside trim not inner frame",
+   "recordedWidthMm": 1209.6866404511238,
+   "recordedRecess": false,
+   "secs": 82.203
+  },
+  {
+   "id": "cloakroom",
+   "ok": true,
+   "widthMm": 540.6585897762552,
+   "recess": true,
+   "votes": "4 of 5",
+   "why": "window is recessed, span is recess opening on wall face not inner frame",
+   "recordedWidthMm": 534.7372347147897,
+   "recordedRecess": true,
+   "secs": 18.01
+  },
+  {
+   "id": "cloakroom",
+   "ok": true,
+   "widthMm": 542.58960086646,
+   "recess": true,
+   "votes": "5 of 5",
+   "why": "recess opening at wall face not inner frame",
+   "recordedWidthMm": 534.7372347147897,
+   "recordedRecess": true,
+   "secs": 79.073
+  },
+  {
+   "id": "recess-friend",
+   "ok": true,
+   "widthMm": 601.1654433167148,
+   "recess": true,
+   "votes": "4 of 5",
+   "why": "recess opening at wall face not inner frame",
+   "recordedWidthMm": 601.5001197613243,
+   "recordedRecess": true,
+   "secs": 18.793
+  },
+  {
+   "id": "recess-friend",
+   "ok": true,
+   "widthMm": 601.1654433167148,
+   "recess": true,
+   "votes": "5 of 5",
+   "why": "recess edges on wall face not inner window frame B/C",
+   "recordedWidthMm": 601.5001197613243,
+   "recordedRecess": true,
+   "secs": 73.851
+  },
+  {
+   "id": "small-friend",
+   "ok": true,
+   "widthMm": 606.518932386502,
+   "recess": false,
+   "votes": "the 5 frames didn't agree on a wider opening",
+   "why": "outer trim/recess opening where it meets main wall face",
+   "recordedWidthMm": 606.518932386502,
+   "recordedRecess": false,
+   "secs": 28.114
+  },
+  {
+   "id": "small-friend",
+   "ok": true,
+   "widthMm": 606.518932386502,
+   "recess": false,
+   "votes": "the 5 frames didn't agree on a wider opening",
+   "why": "A and B are outer trim/recess opening on wall face, correct span for pole",
+   "recordedWidthMm": 606.518932386502,
+   "recordedRecess": false,
+   "secs": 81.025
+  }
+ ]
+}

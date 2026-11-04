@@ -123,7 +123,7 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
     return x.p.edges.some((e) => !e.measured && (e.xMm < lo - margin(x) / 2 || e.xMm > hi + margin(x) / 2));
   };
   const sameAsOutline = picks.filter((x) => Math.abs(x.p.widthMm - x.g.r.widthMm) < 15 && couldBeWider(x));
-  if (picks.length) result.models.push("muse-spark-1.3 (which edges)");
+  for (const by of new Set(picks.map((x: any) => x.p?.by ?? x.by).filter(Boolean))) result.models.push(`${by} (which edges)`);
   // Adopt a wider span only when the frames agree on it: the largest group of wider picks within 25 mm of each other,
   // at least two frames (one, if only one frame could be asked), and more than the frames that said "the outline".
   const groups = wider.map((x) => wider.filter((y) => Math.abs(y.p.widthMm - x.p.widthMm) <= 25));

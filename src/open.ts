@@ -38,3 +38,19 @@ export async function openJson(system: string, user: string): Promise<{ text: st
   console.log(`[open] ${OPEN_MODEL} on ${OPEN_WHERE}: id ${res.id}, ${Date.now() - t0} ms`);
   return { text, ms: Date.now() - t0 };
 }
+
+/** Muse Spark Open looking at a picture: one JSON answer. Null without a Baseten key; throws if Baseten fails. */
+export async function openVisionJson(jpeg: Buffer, text: string): Promise<string | null> {
+  const c = open();
+  if (!c) return null;
+  const t0 = Date.now();
+  const res: any = await c.chat.completions.create({
+    model: OPEN_MODEL,
+    messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: `data:image/jpeg;base64,${jpeg.toString("base64")}` } }, { type: "text", text }] }],
+    max_tokens: 8000, reasoning_effort: "low", temperature: 0.2,
+  } as any);
+  const out = res.choices?.[0]?.message?.content ?? "";
+  if (!out.trim()) throw new Error(`Muse Spark Open sent an empty answer (finish: ${res.choices?.[0]?.finish_reason})`);
+  console.log(`[open] ${OPEN_MODEL} looking: ${Date.now() - t0} ms`);
+  return out;
+}

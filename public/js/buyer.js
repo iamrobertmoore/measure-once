@@ -15,8 +15,17 @@ const SHOPS = {
   "example-curtains": { name: "Example curtain maker", maker: "the maker", seller: "curtains", what: "curtains", ask: "An example made-to-measure curtain maker, using the usual trade rules. Film your window to get the curtain size." },
   "example-blinds": { name: "Example blind maker", maker: "the maker", seller: "blinds", what: "a roller blind", ask: "An example made-to-measure roller blind maker, using the usual trade rules. Film your window to get the blind size." },
 };
-const shopId = new URLSearchParams(location.search).get("shop") || "creationsfromrob";
-const shop = SHOPS[shopId] || SHOPS.creationsfromrob;
+// Any maker can make their own link: ?name=Helen's Poles&maker=Helen&makes=poles|blinds|curtains (see "Make your link").
+const qs = new URLSearchParams(location.search);
+const clean = (v, n) => String(v || "").replace(/[<>]/g, "").trim().slice(0, n);
+const custom = qs.get("name") ? (() => {
+  const seller = ["poles", "blinds", "curtains"].includes(qs.get("makes")) ? qs.get("makes") : "poles";
+  const name = clean(qs.get("name"), 60), maker = clean(qs.get("maker"), 30) || name;
+  const what = { poles: "curtain poles", blinds: "roller blinds", curtains: "curtains" }[seller];
+  return { name, maker, seller, what, ask: `${name} makes ${what} to measure. Film your window and ${maker} gets the size they need to make yours.` };
+})() : null;
+const shopId = custom ? clean(qs.get("name"), 40) : qs.get("shop") || "creationsfromrob";
+const shop = custom || SHOPS[shopId] || SHOPS.creationsfromrob;
 document.title = `${shop.name}: measure your window`;
 $("shopName").textContent = shop.name;
 $("askLede").textContent = shop.ask;

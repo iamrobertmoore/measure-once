@@ -8,13 +8,14 @@
 // 2. Those edges are drawn on the frame as lettered lines, and Muse Spark is asked which pair the pole must span,
 //    given what the buyer said. Picking a letter is something the model does reliably; reading off coordinates is not.
 // 3. Code measures between the chosen lines on the wall plane.
+import { openVisionJson, openKey } from "./open.ts";
 import sharp from "sharp";
 import type OpenAI from "openai";
 import { apply, type Pt } from "./geometry.ts";
 import type { RGB } from "./measure.ts";
 
 export type SpanEdge = { label: string; xMm: number; strength: number; measured?: boolean };
-export type SpanPick = { leftMm: number; rightMm: number; widthMm: number; left: string; right: string; why: string; edges: SpanEdge[] };
+export type SpanPick = { leftMm: number; rightMm: number; widthMm: number; left: string; right: string; why: string; by: string; edges: SpanEdge[] };
 
 const LETTERS = "ABCDEFGHIJKLMN";
 
@@ -87,21 +88,36 @@ export async function labelledFrame(jpeg: Buffer, G: number[], wall: { y0: numbe
  *  describe, not by matching a number. Their number comes back in the reply, which compares it with the measurement. */
 export const maskNumbers = (t: string) => t.replace(/\b\d+(?:[.,]\d+)?\s*(?:cm|centimet(?:er|re)s?|mm|millimet(?:er|re)s?|m|metres?|meters?|inch(?:es)?|in|feet|foot|ft)?\b/gi, "[a length]");
 
+const spanQuestion = (letters: string[], transcript: string, measured: string) =>
+`A buyer filmed this window with a sheet of A4 on the wall; they want a curtain pole fixed on the wall above it.${transcript ? ` They said: "${maskNumbers(transcript).slice(0, 600)}".` : ""}
+I've drawn lettered vertical lines (${letters.join(", ")}). ${measured ? `Lines ${measured} are the window's outer edges as my measuring tool found them; the others are strong edges further out on the wall.` : ""} The pole has to span the window's opening as seen on the main wall face: the outside of any trim or surround, or, if the window is set back in a recess, the edges of the recess opening where it meets the wall face (not the frame inside the recess). Which line is the left edge of that span, and which is the right? JSON only: {"left": "<letter>", "right": "<letter>", "why": "<a few words>"}`;
+const parsePick = (t: string, letters: string[]) => {
+  const m = t.match(/\{[\s\S]*\}/); if (!m) return null;
+  try { const j = JSON.parse(m[0]); if (letters.includes(j.left) && letters.includes(j.right)) return { left: j.left, right: j.right, why: String(j.why ?? "").slice(0, 160) }; } catch {}
+  return null;
+};
+
 /** Ask Muse Spark which two lettered lines the pole has to span. */
-export async function askSpan(api: OpenAI, labelled: Buffer, letters: string[], transcript: string, measured = "", model = "muse-spark-1.3"): Promise<{ left: string; right: string; why: string } | null> {
+// Muse Spark Open (open weights, on Baseten) picks when a Baseten key is set; on 10 re-runs it picked the same edges as
+// the hosted Muse Spark every time (public/samples/masked-open.json). If Baseten fails, the hosted model picks instead.
+export async function askSpan(api: OpenAI, labelled: Buffer, letters: string[], transcript: string, measured = "", model = process.env.SPAN_MODEL || (openKey() ? "open" : "muse-spark-1.3")): Promise<{ left: string; right: string; why: string; by: string } | null> {
+  if (model === "open") {
+    try {
+      const t = await openVisionJson(labelled, spanQuestion(letters, transcript, measured));
+      const p = t ? parsePick(t, letters) : null;
+      if (p) return { ...p, by: "meta-models/muse-spark-open on Baseten" };
+    } catch (e: any) { console.log(`[open] edge pick falling back to hosted Muse Spark: ${e?.message ?? e}`); }
+    model = "muse-spark-1.3";
+  }
   const res: any = await api.responses.create({
     model, max_output_tokens: 12000, reasoning: { effort: "low" }, // picking a letter needs little deliberation; 3 to 4 times faster
     input: [{ role: "user", content: [
       { type: "input_image", image_url: `data:image/jpeg;base64,${labelled.toString("base64")}` },
-      { type: "input_text", text:
-`A buyer filmed this window with a sheet of A4 on the wall; they want a curtain pole fixed on the wall above it.${transcript ? ` They said: "${maskNumbers(transcript).slice(0, 600)}".` : ""}
-I've drawn lettered vertical lines (${letters.join(", ")}). ${measured ? `Lines ${measured} are the window's outer edges as my measuring tool found them; the others are strong edges further out on the wall.` : ""} The pole has to span the window's opening as seen on the main wall face: the outside of any trim or surround, or, if the window is set back in a recess, the edges of the recess opening where it meets the wall face (not the frame inside the recess). Which line is the left edge of that span, and which is the right? JSON only: {"left": "<letter>", "right": "<letter>", "why": "<a few words>"}` },
+      { type: "input_text", text: spanQuestion(letters, transcript, measured) },
     ] }],
   } as any);
-  const t: string = res.output_text ?? "";
-  const m = t.match(/\{[\s\S]*\}/); if (!m) return null;
-  try { const j = JSON.parse(m[0]); if (letters.includes(j.left) && letters.includes(j.right)) return { left: j.left, right: j.right, why: String(j.why ?? "").slice(0, 160) }; } catch {}
-  return null;
+  const p = parsePick(res.output_text ?? "", letters);
+  return p ? { ...p, by: model } : null;
 }
 
 export async function pickSpan(api: OpenAI, jpeg: Buffer, rgb: RGB, G: number[], wall: { x0: number; y0: number; w: number; h: number }, heightKnown: boolean, transcript: string): Promise<SpanPick | null> {
@@ -112,5 +128,5 @@ export async function pickSpan(api: OpenAI, jpeg: Buffer, rgb: RGB, G: number[],
   if (!a) return null;
   const L = edges.find((e) => e.label === a.left)!, R = edges.find((e) => e.label === a.right)!;
   if (R.xMm <= L.xMm) return null;
-  return { leftMm: L.xMm, rightMm: R.xMm, widthMm: R.xMm - L.xMm, left: a.left, right: a.right, why: a.why, edges };
+  return { leftMm: L.xMm, rightMm: R.xMm, widthMm: R.xMm - L.xMm, left: a.left, right: a.right, why: a.why, by: a.by, edges };
 }

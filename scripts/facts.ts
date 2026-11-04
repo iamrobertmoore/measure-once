@@ -17,12 +17,19 @@ const ref = (file: string, pattern: string) => {
 };
 const sm = run("cloakroom");
 // The whole tape table, every window, generated so it can't drift from the scored runs.
-const tapeTable = ["| Window | Where | Tape | Measure Once | Difference |", "|---|---|---|---|---|",
+// Today's code: every measured clip re-run end to end, twice with each model picking the edges (masked*.json).
+const todayRuns = [...JSON.parse(readFileSync("public/samples/masked.json", "utf8")).rows, ...JSON.parse(readFileSync("public/samples/masked-open.json", "utf8")).rows];
+const tapeById: Record<string, number> = { "living-room": 2220, bathroom: 1190, cloakroom: 590, "recess-friend": 570, "small-friend": 630 };
+const winOf: Record<string, string> = { "living room": "living-room", bathroom: "bathroom", "small bathroom": "cloakroom", "another home: window in a recess": "recess-friend", "another home: small window": "small-friend" };
+const medOf = (a: number[]) => { const b = [...a].sort((x, y) => x - y); const n = b.length; return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; };
+const todayFor = (w: string) => { const k = Object.keys(winOf).find((p) => w.startsWith(p)); const id = k ? winOf[k] : ""; const xs = todayRuns.filter((x: any) => x.id === id).map((x: any) => x.widthMm); return xs.length ? medOf(xs) : null; };
+const tapeTable = ["| Window | Where | Tape | Recorded run | Today's code (median of 4 runs) |", "|---|---|---|---|---|",
   ...acc.rows.map((r: any) => {
     const home = r.window.startsWith("another home") ? "elsewhere" : "my house";
     const name = r.window.replace(/^another home: /, "");
     const what = r.recess ? " (recess opening)" : "";
-    return `| ${name[0].toUpperCase() + name.slice(1)}${what} | ${home} | ${r.measured_mm !== null ? cm(r.tape_mm) + " cm" : "not needed"} | ${r.measured_mm !== null ? cm(r.measured_mm) + " cm" : "refused"} | ${r.error_mm !== null ? signed(r.error_mm) + " mm" : r.note.replace(/;.*/, "")} |`;
+    const td = todayFor(r.window);
+    return `| ${name[0].toUpperCase() + name.slice(1)}${what} | ${home} | ${r.measured_mm !== null ? cm(r.tape_mm) + " cm" : "not needed"} | ${r.measured_mm !== null ? `${cm(r.measured_mm)} cm (${signed(r.error_mm)} mm)` : "refused: " + r.note.replace(/;.*/, "")} | ${td !== null ? `${cm(td)} cm (${signed(Math.round(td - r.tape_mm))} mm)` : "refused"} |`;
   })].join("\n");
 const measured = acc.rows.filter((r: any) => r.error_mm !== null);
 const plain = measured.filter((r: any) => !r.recess), recessRows = measured.filter((r: any) => r.recess);
@@ -98,7 +105,12 @@ const facts: Record<string, string | number> = {
   pole_fit_ok: fits.filter((f) => f.ok).length, pole_fit_total: fits.length, pole_fit_band: fits.filter((f) => f.band).length,
   pole_fit_overhangs: fits.map((f) => `${cm(f.over)} cm`).join(", "),
   worst_err_cm: cm(errsAll[errsAll.length - 1]), median_err_cm: cm(errsAll[Math.floor((errsAll.length - 1) / 2)]),
-  tape_table: tapeTable, ...writers, ...ablation, ...loo, ...masked,
+  tape_table: tapeTable, ...writers,
+  ...(() => { const ids5 = Object.keys(tapeById); const errs = ids5.map((id) => Math.abs(medOf(todayRuns.filter((x: any) => x.id === id).map((x: any) => x.widthMm)) - tapeById[id]));
+    const all = todayRuns.map((x: any) => Math.abs(x.widthMm - tapeById[x.id]));
+    const op = JSON.parse(readFileSync("public/samples/masked-open.json", "utf8")).rows, hs = JSON.parse(readFileSync("public/samples/masked.json", "utf8")).rows;
+    const sameAsHosted = op.filter((o: any) => hs.some((h: any) => h.id === o.id && h.recess === o.recess)).length;
+    return { today_runs: todayRuns.length, today_median_cm: cm(medOf(errs)), today_worst_cm: cm(Math.max(...all)), open_pick_runs: op.length, open_pick_same: sameAsHosted }; })(), ...ablation, ...loo, ...masked,
   ref_render_check: ref("src/render.ts", "best.coverage >= 0.85"),
   likely_inside: sure.filter((x) => x.inside).length, likely_holds: sure.filter((x) => x.holds).length, likely_total: sure.length,
   likely_half_cm: `${cm(Math.min(...sure.map((x) => x.half)))} to ${cm(Math.max(...sure.map((x) => x.half)))}`,
