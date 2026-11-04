@@ -4,7 +4,7 @@
 
 <p align="center"><b>A sizing desk for people who make things to measure. The buyer films their window; I get the size, the cut and a drafted reply to approve.</b></p>
 
-<p align="center"><a href="https://measure-once.vercel.app"><b>Try it live, on your own window</b></a> · <a href="https://measure-once.vercel.app/rob">My buyer link</a> · <a href="https://www.youtube.com/watch?v=TBD">The video (2:58)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
+<p align="center"><a href="https://measure-once.vercel.app"><b>Try it live, on your own window</b></a> · <a href="https://measure-once.vercel.app/rob">My buyer link</a> · <a href="https://www.youtube.com/watch?v=AGAKNdEwQGI">The video (2:58)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
 
 I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. It's a real shop, [Creationsfromrob](https://www.etsy.com/shop/creationsfromrob), open since 2020, with nearly 800 sales and a 4.7-star rating from 119 reviews, and every number below comes from my own inbox, my own windows and my own catalogue. Poles come in fixed lengths and get cut to fit, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
 
@@ -21,7 +21,7 @@ It's built around my shop, but the measuring isn't tied to it. The page has two 
 | Impact | [My shop](https://www.etsy.com/shop/creationsfromrob), [my inbox numbers](#why-not-just-a-tape-measure), [three other makers](#what-other-makers-said), and [my buyer link](https://measure-once.vercel.app/rob), which is in the reply I send buyers who ask which size |
 | Use of Meta's models | [How Meta's models are used](#how-metas-models-are-used): Muse Spark Open looks (picks the edges) and writes (the reply); SAM 3.1, Muse Voice Transcribe, Muse Image |
 | Technical depth | [Measured against a tape](#measured-against-a-tape), the [fair model-alone baseline](#muse-spark-alone-versus-the-measuring-code) and the [edge-pick comparison](#which-edges-does-the-pole-span) |
-| Demo | [The video](https://www.youtube.com/watch?v=TBD) and [the live page](https://measure-once.vercel.app): try it on your own window |
+| Demo | [The video](https://www.youtube.com/watch?v=AGAKNdEwQGI) and [the live page](https://measure-once.vercel.app): try it on your own window |
 
 ## Try it
 

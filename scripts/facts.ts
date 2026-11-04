@@ -145,7 +145,7 @@ const facts: Record<string, string | number> = {
   lr_pole: pole(lr.options[0]), lr_cut_each_end_cm: cm(lr.options[0].cutPerEndMm),
   bt_pole: pole(bt.options[0]),
   live_url: process.env.LIVE_URL || "https://measure-once.vercel.app",
-  video_url: process.env.VIDEO_URL || "https://www.youtube.com/watch?v=TBD",
+  video_url: process.env.VIDEO_URL || "https://www.youtube.com/watch?v=AGAKNdEwQGI",
   run_seconds: (() => { const ts = ["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"].map((id) => run(id).timingsMs.totalMs).sort((a: number, b: number) => a - b); return Math.round(ts[2] / 1000); })(),
   run_seconds_min: Math.min(...["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"].map((id) => Math.round(run(id).timingsMs.totalMs / 1000))),
   run_seconds_max: Math.max(...["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"].map((id) => Math.round(run(id).timingsMs.totalMs / 1000))),
