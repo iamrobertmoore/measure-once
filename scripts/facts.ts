@@ -1,6 +1,7 @@
 // One source for every number on every surface. Builds docs/readme/facts.json from the recorded runs and the scored accuracy,
 // then renders README.md from docs/readme/README.template.md ({{key}} placeholders). `--check` fails if README.md is stale.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { likelyMm, poleAcross } from "../src/sure.ts";
 const acc = JSON.parse(readFileSync("public/samples/accuracy.json", "utf8"));
 const run = (id: string) => JSON.parse(readFileSync(`public/samples/${id}/run.json`, "utf8"));
 const lr = run("living-room"), bt = run("bathroom");
@@ -32,12 +33,26 @@ const fits = measured.map((r: any) => {
   const o = run(id).options[0], len = o.cutToMm ?? o.stockCm * 10, over = (len - r.tape_mm) / 2;
   return { over, ok: over >= 100 && over <= 250, band: over >= 150 && over <= 200 };
 });
+// "How sure": is the tape inside the likely range shown to the buyer, and does the pole fit across all of it?
+const sure = measured.map((r: any) => {
+  const x = run(ids.find((i: string) => { const y = run(i); return y.ok && Math.round(y.widthMm) === r.measured_mm; }));
+  const L = likelyMm(x.widthMm, x.spreadMm, x.framesUsed, !!x.span?.adopted), o = x.options[0];
+  return { inside: r.tape_mm >= L.lo && r.tape_mm <= L.hi, holds: poleAcross(o.cutToMm ?? o.stockCm * 10, L.lo, L.hi).holds, half: L.half };
+});
+// One frame on its own against the median of all of them, on the plain windows (a recess is picked across frames, not per frame).
+const single = plain.flatMap((r: any) => {
+  const x = run(ids.find((i: string) => { const y = run(i); return y.ok && Math.round(y.widthMm) === r.measured_mm; }));
+  return x.frames.filter((f: any) => f.ok && f.widthMm).map((f: any) => Math.abs(f.widthMm - r.tape_mm));
+}).sort((a: number, b: number) => a - b);
 const errsAll = measured.map((r: any) => Math.abs(r.error_mm)).sort((a: number, b: number) => a - b);
 const facts: Record<string, string | number> = {
   pole_fit_ok: fits.filter((f) => f.ok).length, pole_fit_total: fits.length, pole_fit_band: fits.filter((f) => f.band).length,
   pole_fit_overhangs: fits.map((f) => `${cm(f.over)} cm`).join(", "),
   worst_err_cm: cm(errsAll[errsAll.length - 1]), median_err_cm: cm(errsAll[Math.floor((errsAll.length - 1) / 2)]),
   tape_table: tapeTable,
+  likely_inside: sure.filter((x) => x.inside).length, likely_holds: sure.filter((x) => x.holds).length, likely_total: sure.length,
+  likely_half_cm: `${cm(Math.min(...sure.map((x) => x.half)))} to ${cm(Math.max(...sure.map((x) => x.half)))}`,
+  single_frames: single.length, single_median_cm: cm(single[Math.floor((single.length - 1) / 2)]), single_worst_cm: cm(single[single.length - 1]),
   windows_total: acc.rows.length, windows_measured: measured.length, windows_refused: acc.rows.length - measured.length,
   other_homes: acc.rows.filter((r: any) => r.window.startsWith("another home")).length,
   plain_count: plain.length, plain_within_cm: (Math.max(...plain.map((r: any) => Math.abs(r.error_mm))) / 10).toFixed(1),

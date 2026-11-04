@@ -4,11 +4,13 @@
 
 <p align="center"><b>A sizing desk for people who make things to measure. The buyer films their window; I get the size, the cut and a drafted reply to approve.</b></p>
 
-<p align="center"><a href="https://measure-once.vercel.app"><b>Try it live, on your own window</b></a> · <a href="https://www.youtube.com/watch?v=TBD">The video (2:19)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
+<p align="center"><a href="https://measure-once.vercel.app"><b>Try it live, on your own window</b></a> · <a href="https://measure-once.vercel.app/buyer.html?shop=creationsfromrob">The buyer link</a> · <a href="https://www.youtube.com/watch?v=TBD">The video (2:19)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
 
 I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles come in fixed lengths, the buyer cuts theirs down at home, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
 
 Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark Open (Meta's open-weights model, on Baseten) drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
+
+Buyers reach it through one link on my listings. They open it on their phone, film the window, and see their size and how sure it is straight away; I get the measurement and the drafted reply by email, and nothing goes back to them until I've checked it.
 
 It's built around my shop, but the measuring isn't tied to it. The page has a second catalogue, a made-to-measure roller blind using the usual trade rules, and the same clip gives that maker the width to order inside the recess or outside it. Blinds, shutters, curtains and tracks all start with the same question.
 
@@ -23,6 +25,7 @@ No login, nothing to install.
 | Press **Run it live** | The whole pipeline runs again on that clip, on Meta's models, in about 67 seconds |
 | Pick **Small window in a recess** | Muse Spark picks the recess opening on the wall, not the frame set back inside it. I'd said 59 cm; the reply gives sizes for both and asks which edges I meant |
 | Switch to **Roller blind** | Same clip, same measurement, another maker's rules: the width to order inside the recess or outside it, and a reply in that maker's voice |
+| Open [the buyer link](https://measure-once.vercel.app/buyer.html?shop=creationsfromrob) on a phone | What my buyers see: film the window, get the size, the likely range and whether the pole fits across it, then send it to me. The maker's email goes to a demo inbox |
 | Pick any of the last three clips | No sheet, a curled sheet, a steep angle: it refuses and says how to film it again, instead of guessing |
 
 ## Why not just a tape measure?
@@ -39,6 +42,8 @@ I read my last 125 buyer threads. 29 were about which size to order, about 1 in 
 | The geometry earns its place | Asked to read the width straight off the same frames, Muse Spark alone said 210 cm and 105 cm, and its readings of single frames spread by up to 60 cm | [The baseline](#muse-spark-alone-versus-the-measuring-code) |
 | The reply can't add a length of its own | Every length in a draft, with its unit, must be one the code computed (exactly, or rounded to the whole centimetre) or the buyer said; anything else is rejected. It can't stop a real number landing in the wrong sentence, which is why I read every draft before it goes | [`src/agent.ts:133`](src/agent.ts#L133), tested in `test/checker.ts` |
 | It gives the same answer twice | Each recorded clip re-run 3 times end to end: 15 of 15 runs measured, the widths never moved more than 8 mm, the recesses were picked every time, and Muse Spark Open wrote all 15 drafts | [`public/samples/repeat.json`](public/samples/repeat.json) |
+| It says how sure it is | Every size comes with a likely range (2.6 to 5.8 cm each side here), from how much the frames disagree plus how far that kind of window has been from the tape. The tape was inside the range on 5 of 5 windows, and the pole it chose fits across the whole range on 5 of 5. The range is set from these same windows, so this is a consistency check, not proof | [`src/sure.ts`](src/sure.ts) |
+| One frame isn't enough | On the plain windows, a single frame alone was a median 2.2 cm from the tape but up to 12.1 cm off; the frames' median never more than 2.3 cm | `frames` in each `public/samples/*/run.json` |
 | It knows when not to answer | Three clips filmed to fail (no sheet, curled sheet, steep angle): refused 3 of 3, all three on the page | Pick them on the live page |
 | Nothing in the photo changes except the pole | Only SAM's cut-out of the painted pole is pasted back onto the original | [`src/render.ts:60`](src/render.ts#L60) |
 | It works on your window, not just mine | **Your window** on the page sends your frames to the same pipeline | [`api/upload.ts:13`](api/upload.ts#L13) |
@@ -91,6 +96,8 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused 3 of 3, each with a reason and how to film it again.
 
 Over the 5 windows it measured, the median error is 2.3 cm and the worst 5.5 cm; on the 3 plain windows it's within 2.3 cm. The question that matters is whether the pole would fit: cut to each measurement, the pole sits 16.5 cm, 18.5 cm, 14.5 cm, 19.0 cm, 16.5 cm past each side of the width the tape measured, so 5 of 5 would fit (4 inside my usual 15 to 20 cm). The 2 recessed windows are the hard ones (−55 mm and +32 mm): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "If we go by your 59 cm I would send the same 120 cm pole cut to 94 cm, which is 13 cm off each end."
+
+Each size also comes with a likely range, and the reply checks the pole against the whole of it, not just the middle. The tape was inside the range on 5 of 5 windows and the chosen pole fits across all of it on 5 of 5; when it doesn't, the reply asks for a quick tape check before anything is cut.
 
 Two windows were refused rather than guessed: one had the sheet resting on top of the frame instead of flat on the wall, the other was filmed from a sharp side angle with one side hidden behind a machine. A refusal costs the buyer ten seconds of filming; a wrong size costs a pole.
 
