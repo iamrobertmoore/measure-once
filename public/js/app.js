@@ -1169,6 +1169,17 @@ async function loadAccuracy() {
       const med = errs.length % 2 ? errs[(errs.length - 1) / 2] : (errs[errs.length / 2 - 1] + errs[errs.length / 2]) / 2;
       $("statErr").textContent = `${cm1(med)} cm`;
       $("statErrNote").textContent = `median error against a steel tape, over the ${measured.length} windows it measured (worst ${cm1(errs[errs.length - 1])} cm)`;
+      // The headline uses today's code: every measured clip re-run four times (the rows below are the recorded runs).
+      try {
+        const runs = (await Promise.all(["samples/masked.json", "samples/masked-open.json"].map((u) => fetch(u).then((x) => x.json())))).flatMap((j) => j.rows);
+        const tapeOf = { "living-room": 2220, bathroom: 1190, cloakroom: 590, "recess-friend": 570, "small-friend": 630 };
+        const medOf = (a) => { const b = [...a].sort((x, y) => x - y), n = b.length; return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; };
+        const per = Object.keys(tapeOf).map((id) => Math.abs(medOf(runs.filter((r) => r.id === id).map((r) => r.widthMm)) - tapeOf[id]));
+        const worst = Math.max(...runs.map((r) => Math.abs(r.widthMm - tapeOf[r.id])));
+        $("statErr").textContent = `${cm1(medOf(per))} cm`;
+        $("statErrNote").textContent = `median error against a steel tape, today's code re-run ${runs.length} times on the ${per.length} windows it measured (worst ${cm1(worst)} cm)`;
+        $("proofSub").textContent += ` The rows below are the recorded runs on this page; re-run ${runs.length} times on today's code, the median is ${cm1(medOf(per))} cm and the worst ${cm1(worst)} cm.`;
+      } catch { /* keep the recorded figure */ }
       const fits = measured.map(poleFit).filter(Boolean);
       if (fits.length) {
         $("statFit").textContent = `${fits.filter((f) => f.ok).length} of ${fits.length}`;
