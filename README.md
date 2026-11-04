@@ -12,7 +12,7 @@ Measure Once is the desk I wanted for that. The buyer films their window for a f
 
 Buyers reach it through one link on my listings. They open it on their phone, film the window, and see their size and how sure it is straight away; I get the measurement and the drafted reply by email, and nothing goes back to them until I've checked it.
 
-It's built around my shop, but the measuring isn't tied to it. The page has a second catalogue, a made-to-measure roller blind using the usual trade rules, and the same clip gives that maker the width to order inside the recess or outside it. Blinds, shutters, curtains and tracks all start with the same question.
+It's built around my shop, but the measuring isn't tied to it. The page has two more catalogues using the usual trade rules: a made-to-measure roller blind (the width to order inside the recess or outside it) and made-to-measure curtains (each curtain's width for pencil pleat or eyelet, and the drop when the clip shows it). The same clip, measured once, sizes all three. Each maker's rules are one small file.
 
 ## Try it
 
@@ -24,7 +24,7 @@ No login, nothing to install.
 | Pick **Living room, shutters** | My own window: the sheet is found, a tape snaps across the frame, and the photo flattens into a scale drawing with the pole, the cut and where I pointed |
 | Press **Run it live** | The whole pipeline runs again on that clip, on Meta's models, in about 67 seconds |
 | Pick **Small window in a recess** | Muse Spark picks the recess opening on the wall, not the frame set back inside it. I'd said 59 cm; the reply gives sizes for both and asks which edges I meant |
-| Switch to **Roller blind** | Same clip, same measurement, another maker's rules: the width to order inside the recess or outside it, and a reply in that maker's voice |
+| Switch to **Roller blind** or **Curtains** | Same clip, same measurement, another maker's rules: the blind to order inside the recess or outside it, or each curtain's width for the pole, and a reply in that maker's voice |
 | Open [the buyer link](https://measure-once.vercel.app/buyer.html?shop=creationsfromrob) on a phone | What my buyers see: film the window, get the size, the likely range and whether the pole fits across it, then send it to me. The maker's email goes to a demo inbox |
 | Pick any of the last three clips | No sheet, a curled sheet, a steep angle: it refuses and says how to film it again, instead of guessing |
 
@@ -32,7 +32,7 @@ No login, nothing to install.
 
 Buyers do have tape measures. What goes wrong is which edges they measure, and whether they say so: the frame or the trim, the glass, the recess or the wall around it. Every sizing thread in my inbox starts with me asking that. A clip shows me the window itself, so the size, the edges and the cut can all be settled in one reply.
 
-I read my last 125 buyer threads. 29 were about which size to order, about 1 in 4 of everything. My replies ran to 77 words on a normal day and 263 on a hard one, and buyers waited a median 10 hours for an answer. Big online blind retailers sell or bundle measuring guarantees for this reason ([example](https://www.selectblinds.com/satisfaction-guarantee.html)). A one-person shop can't, so the size has to be right first time. And it isn't just my shop: in the UK, online sellers are now the largest route to market for curtains and blinds, driven by made-to-measure ordering ([Barbour ABI, 2026](https://store.barbour-abi.com/report/residential-window-coverings-market-report-uk-2026-2030/)), and every one of those orders starts with someone's measurement. A different maker's rules are one small file: the roller blind catalogue on the live page is [`src/blinds.ts`](src/blinds.ts).
+I read my last 125 buyer threads. 29 were about which size to order, about 1 in 4 of everything. My replies ran to 77 words on a normal day and 263 on a hard one, and buyers waited a median 10 hours for an answer. Big online blind retailers sell or bundle measuring guarantees for this reason ([example](https://www.selectblinds.com/satisfaction-guarantee.html)). A one-person shop can't, so the size has to be right first time. And it isn't just my shop: in the UK, online sellers are now the largest route to market for curtains and blinds, driven by made-to-measure ordering ([Barbour ABI, 2026](https://store.barbour-abi.com/report/residential-window-coverings-market-report-uk-2026-2030/)), and every one of those orders starts with someone's measurement. A different maker's rules are one small file: the roller blind and curtain catalogues on the live page are [`src/blinds.ts`](src/blinds.ts) and [`src/curtains.ts`](src/curtains.ts).
 
 ## Check every claim in five minutes
 
@@ -69,9 +69,9 @@ For my living room window it recommends the **300 cm pole cut to 255 cm**, takin
 | Model | The job | Code |
 |---|---|---|
 | SAM 3.1, images | Finds the A4 sheet and three readings of the window (frame, surround, wooden frame) on each sharp frame | [`src/measure.ts:131`](src/measure.ts#L131) |
-| SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside (on full clips; an upload from the page sends frames only, to stay fast and small) | [`src/pipeline.ts:220`](src/pipeline.ts#L220) |
+| SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside (on full clips; an upload from the page sends frames only, to stay fast and small) | [`src/pipeline.ts:233`](src/pipeline.ts#L233) |
 | Muse Spark 1.3, looking | Picks which of the lettered edges the pole spans: the trim, or a recess opening around a set-back window | [`src/span.ts:103`](src/span.ts#L103) |
-| Muse Voice Transcribe | Hears what the buyer wants, biased to English with curtain words as keywords | [`src/pipeline.ts:49`](src/pipeline.ts#L49) |
+| Muse Voice Transcribe | Hears what the buyer wants, biased to English with curtain words as keywords | [`src/pipeline.ts:51`](src/pipeline.ts#L51) |
 | **Muse Spark Open** (open weights, `meta-models/muse-spark-open`, served on Baseten) | Writes the reply: picks among the options the code computed and drafts it in my voice, reconciling the buyer's own numbers. On the 5 recorded clips every draft passed the number check first time, in about 3 s each. Every live run says which model wrote its draft | [`src/open.ts:24`](src/open.ts#L24) |
 | Muse Spark 1.3, writing (fallback) | Takes over the draft by itself if Baseten can't answer, so a run never stops | [`src/agent.ts:96`](src/agent.ts#L96) |
 | Muse Image 1.0 | Turns a flat pole drawn in exact perspective into a photoreal pole on the buyer's wall | [`src/render.ts:52`](src/render.ts#L52) |
@@ -153,7 +153,7 @@ npm test                                          # geometry, catalogue and repl
 - **A picture frame pulled the sheet's edge.** A hanging picture's wooden bar sat just above the sheet and dragged its top edge up by 9 pixels. Samples where the "outside" is brighter than the sheet are now ignored ([`src/geometry.ts:205`](src/geometry.ts#L205)).
 - **The recess.** The tool measured the frame, set back in the recess, and I'd measured the opening on the wall: 11.7 cm apart. Asked for coordinates, Muse Spark was out by up to 100 pixels; asked to pick between lettered lines the code had found, it was consistent, 3 of 3. Its first picks wandered between a reveal edge and a wall corner, so candidates are now limited to a narrow band beside the window, and a wider span is only taken when frames agree within 25 mm ([`src/span.ts:103`](src/span.ts#L103)).
 - **The buyer and the tool can both be right.** Lengths the buyer says out loud are picked out ([`src/agent.ts:160`](src/agent.ts#L160)). When they disagree with the measurement, the reply must give both sizes; if Muse Spark leaves one out twice, the code writes that sentence itself from the computed option.
-- **Hands everywhere.** Buyers point while they film. Frames are only set aside when a hand covers the sheet or a side of the window ([`src/pipeline.ts:251`](src/pipeline.ts#L251)), and a slow hand-tracking call can't hold up the size ([`src/pipeline.ts:225`](src/pipeline.ts#L225)).
+- **Hands everywhere.** Buyers point while they film. Frames are only set aside when a hand covers the sheet or a side of the window ([`src/pipeline.ts:264`](src/pipeline.ts#L264)), and a slow hand-tracking call can't hold up the size ([`src/pipeline.ts:238`](src/pipeline.ts#L238)).
 - **SAM sees several windows in one window.** Frame, trim and surround all come back. The reading seen in the most frames wins, unless a wider one is clearly wider.
 - **Muse Image moves things.** The painted pole can drift from where the code placed it. Only SAM's pole mask inside the planned region is kept, gaps are closed, a short cut-out gets one retry, and the exact drawn pole is the fallback.
 - **Rate limits.** Ten frames times four prompts at once hit the limit. SAM calls share a small queue with backoff, and the hands moved to one video call.

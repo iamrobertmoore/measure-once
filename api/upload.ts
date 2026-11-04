@@ -28,7 +28,7 @@ export default async function handler(req: any, res: any) {
     const paperRaw = String(fd.get("paper") || "auto");
     const paper = paperRaw === "A4" || paperRaw === "Letter" ? paperRaw : undefined;
     const photos = String(fd.get("kind") || "") === "photos";
-    const seller = String(fd.get("seller") || "poles") === "blinds" ? "blinds" : "poles";
+    const sellerRaw = String(fd.get("seller") || "poles"), seller = sellerRaw === "blinds" || sellerRaw === "curtains" ? sellerRaw : "poles";
     console.log(`[upload] ${files.length} frames, ${frames.reduce((n, f) => n + f.length, 0)} bytes, audio ${wav?.length ?? 0} bytes, parsed in ${Date.now() - t0} ms`);
     const r = await runClip(key(), { frames, wav, fps: 3, paper, maxFrames: 8, minFrames: photos ? 1 : 3, seller });
     console.log(`[upload] run done in ${Date.now() - t0} ms: ${JSON.stringify(r.timingsMs)}`);

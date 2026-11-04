@@ -12,7 +12,7 @@ Measure Once is the desk I wanted for that. The buyer films their window for a f
 
 Buyers reach it through one link on my listings. They open it on their phone, film the window, and see their size and how sure it is straight away; I get the measurement and the drafted reply by email, and nothing goes back to them until I've checked it.
 
-It's built around my shop, but the measuring isn't tied to it. The page has a second catalogue, a made-to-measure roller blind using the usual trade rules, and the same clip gives that maker the width to order inside the recess or outside it. Blinds, shutters, curtains and tracks all start with the same question.
+It's built around my shop, but the measuring isn't tied to it. The page has two more catalogues using the usual trade rules: a made-to-measure roller blind (the width to order inside the recess or outside it) and made-to-measure curtains (each curtain's width for pencil pleat or eyelet, and the drop when the clip shows it). The same clip, measured once, sizes all three. Each maker's rules are one small file.
 
 ## Try it
 
@@ -24,7 +24,7 @@ No login, nothing to install.
 | Pick **Living room, shutters** | My own window: the sheet is found, a tape snaps across the frame, and the photo flattens into a scale drawing with the pole, the cut and where I pointed |
 | Press **Run it live** | The whole pipeline runs again on that clip, on Meta's models, in about {{run_seconds}} seconds |
 | Pick **Small window in a recess** | Muse Spark picks the recess opening on the wall, not the frame set back inside it. I'd said 59 cm; the reply gives sizes for both and asks which edges I meant |
-| Switch to **Roller blind** | Same clip, same measurement, another maker's rules: the width to order inside the recess or outside it, and a reply in that maker's voice |
+| Switch to **Roller blind** or **Curtains** | Same clip, same measurement, another maker's rules: the blind to order inside the recess or outside it, or each curtain's width for the pole, and a reply in that maker's voice |
 | Open [the buyer link]({{live_url}}/buyer.html?shop=creationsfromrob) on a phone | What my buyers see: film the window, get the size, the likely range and whether the pole fits across it, then send it to me. The maker's email goes to a demo inbox |
 | Pick any of the last three clips | No sheet, a curled sheet, a steep angle: it refuses and says how to film it again, instead of guessing |
 
@@ -32,7 +32,7 @@ No login, nothing to install.
 
 Buyers do have tape measures. What goes wrong is which edges they measure, and whether they say so: the frame or the trim, the glass, the recess or the wall around it. Every sizing thread in my inbox starts with me asking that. A clip shows me the window itself, so the size, the edges and the cut can all be settled in one reply.
 
-I read my last {{inbox_threads_read}} buyer threads. {{inbox_sizing_threads}} were about which size to order, about {{inbox_sizing_share}} of everything. My replies ran to {{inbox_reply_words_median}} words on a normal day and {{inbox_reply_words_p90}} on a hard one, and buyers waited a median {{inbox_wait_hours_median}} hours for an answer. Big online blind retailers sell or bundle measuring guarantees for this reason ([example](https://www.selectblinds.com/satisfaction-guarantee.html)). A one-person shop can't, so the size has to be right first time. And it isn't just my shop: in the UK, online sellers are now the largest route to market for curtains and blinds, driven by made-to-measure ordering ([Barbour ABI, 2026](https://store.barbour-abi.com/report/residential-window-coverings-market-report-uk-2026-2030/)), and every one of those orders starts with someone's measurement. A different maker's rules are one small file: the roller blind catalogue on the live page is [`src/blinds.ts`](src/blinds.ts).
+I read my last {{inbox_threads_read}} buyer threads. {{inbox_sizing_threads}} were about which size to order, about {{inbox_sizing_share}} of everything. My replies ran to {{inbox_reply_words_median}} words on a normal day and {{inbox_reply_words_p90}} on a hard one, and buyers waited a median {{inbox_wait_hours_median}} hours for an answer. Big online blind retailers sell or bundle measuring guarantees for this reason ([example](https://www.selectblinds.com/satisfaction-guarantee.html)). A one-person shop can't, so the size has to be right first time. And it isn't just my shop: in the UK, online sellers are now the largest route to market for curtains and blinds, driven by made-to-measure ordering ([Barbour ABI, 2026](https://store.barbour-abi.com/report/residential-window-coverings-market-report-uk-2026-2030/)), and every one of those orders starts with someone's measurement. A different maker's rules are one small file: the roller blind and curtain catalogues on the live page are [`src/blinds.ts`](src/blinds.ts) and [`src/curtains.ts`](src/curtains.ts).
 
 ## Check every claim in five minutes
 

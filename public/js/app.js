@@ -69,7 +69,7 @@ const fixFor = (reason) =>
 
 function refilmDraft(reason, photos = false) {
   const f = fixFor(reason);
-  const then = state.seller === "blinds" ? "exactly what size of blind to order" : "exactly which pole to order and where to cut it";
+  const then = state.seller === "blinds" ? "exactly what size of blind to order" : state.seller === "curtains" ? "exactly what size of curtains to order" : "exactly which pole to order and where to cut it";
   return (
     `Thanks for the ${photos ? "photos" : "video"}. I couldn't get a measurement I'd trust from this one, as ${f.problem}.\n` +
     `Could you ${f.ask} and film it again for about 10 seconds? Then I can tell you ${then}.\n` +
@@ -148,23 +148,24 @@ function currentRun() {
 // ---------- whose rules: my pole, or the example roller blind ----------
 const hasBlinds = (run) => !!(run?.ok && run.blinds?.options?.length);
 // What this clip shows: the blind when it's picked and the run has blind sizes, otherwise my pole.
-const modeFor = (run) => (state.seller === "blinds" && hasBlinds(run) ? "blinds" : "poles");
+const hasCurtains = (run) => !!(run?.ok && run.curtains?.options?.length);
+const modeFor = (run) => (state.seller === "blinds" && hasBlinds(run) ? "blinds" : state.seller === "curtains" && hasCurtains(run) ? "curtains" : "poles");
 
 function renderSeller(run) {
   const group = $("seller");
   const measured = !!run?.ok;
-  const blindsOk = hasBlinds(run);
+  const blindsOk = hasBlinds(run), curtainsOk = hasCurtains(run);
   const mode = measured ? modeFor(run) : state.seller;
   let why = "";
   if (!measured) why = "Only for clips I could measure";
-  else if (!blindsOk) why = "This run has no blind sizes. Pick Roller blind and run it live again.";
+  const missing = (s) => (s === "blinds" && !blindsOk) || (s === "curtains" && !curtainsOk);
   group.classList.toggle("off", !measured);
   group.title = why;
   for (const b of group.querySelectorAll(".seg-btn")) {
-    const isBlind = b.dataset.seller === "blinds";
-    b.setAttribute("aria-pressed", String(b.dataset.seller === mode));
-    b.disabled = !measured || (isBlind && !blindsOk);
-    b.title = b.disabled ? why : "";
+    const s = b.dataset.seller;
+    b.setAttribute("aria-pressed", String(s === mode));
+    b.disabled = !measured || missing(s);
+    b.title = !measured ? why : missing(s) ? `This run has no ${s === "blinds" ? "blind" : "curtain"} sizes. Pick it and run it live again.` : "";
   }
   // the copy on the upload form: what the next run of your own window will be sized for
   for (const b of $("trySeller").querySelectorAll(".seg-btn")) {
@@ -176,7 +177,7 @@ function renderSeller(run) {
 function onSeller(e) {
   const b = e.target.closest(".seg-btn");
   if (!b || b.disabled) return;
-  const next = b.dataset.seller === "blinds" ? "blinds" : "poles";
+  const next = ["blinds", "curtains"].includes(b.dataset.seller) ? b.dataset.seller : "poles";
   if (next === state.seller && b.getAttribute("aria-pressed") === "true") return;
   state.seller = next;
   const id = state.current;
@@ -431,6 +432,28 @@ function blindFacts(run) {
   </div>`;
 }
 
+// The curtain sizes from the example catalogue, for the pole my rules picked.
+function curtainFacts(run) {
+  const opts = run.curtains.options;
+  const items = opts
+    .map((o, i) => {
+      const drop = o.sillDropMm
+        ? `<p class="blind-drop">${cmClean(o.sillDropMm)} cm to the sill, ${cmClean(o.belowSillDropMm)} cm below it</p>`
+        : `<p class="blind-drop${i ? " muted" : " need"}">drop: measure from the pole down (not in the clip)</p>`;
+      return `<li>
+        <p class="blind-fit"><i class="blindmark${i ? " plain" : ""}" aria-hidden="true"></i>${esc(cap(o.heading))}, ${o.fullness} times fullness</p>
+        <p class="blind-size">${cmClean(o.eachCurtainMm)} cm each curtain</p>
+        ${drop}
+        <p class="blind-note">A pair, ${o.fabricWidthsEach} width${o.fabricWidthsEach === 1 ? "" : "s"} of 137 cm fabric each.</p>
+      </li>`;
+    })
+    .join("");
+  return `<div class="fact-block">
+    <p class="fact-label">The curtains to make, for a ${cmClean(opts[0].poleMm)} cm pole</p>
+    <ul class="blind-opts">${items}</ul>
+  </div>`;
+}
+
 function renderFacts(run, id, still = false) {
   const isLive = state.live.has(id);
   const el = $("facts");
@@ -462,6 +485,7 @@ function renderFacts(run, id, still = false) {
     ${sl ? `<p class="fact-span"><span class="spark-tag">Muse Spark</span> ${sl}</p>` : ""}
   </div>`;
   if (blinds) html += blindFacts(run);
+  if (modeFor(run) === "curtains") html += curtainFacts(run);
   if (o && !blinds) {
     const cut = o.cutToMm != null && o.cutPerEndMm > 0;
     html += `<div class="fact-block">
@@ -492,19 +516,22 @@ function renderReply(run, id, changed) {
   const sendBtn = $("sendBtn");
   const poleBtn = $("poleBtn");
   const blinds = modeFor(run) === "blinds";
-  const draft = blinds ? run.blinds?.draft : run.draft;
+  const curtains = modeFor(run) === "curtains";
+  const draft = blinds ? run.blinds?.draft : curtains ? run.curtains?.draft : run.draft;
   if (changed || state.live.has(id)) {
     if (run.ok) {
       $("replyLabel").textContent = "Draft reply, in your words";
       const writer = !blinds && /muse-spark-open/.test(draft?.ranOn || "") ? "Muse Spark Open, Meta's open-weights model on Baseten," : "Muse Spark";
       $("replySub").textContent = blinds
         ? "Muse Spark drafted this from the measuring code's numbers and the example blind catalogue. Change anything you like before it goes."
+        : curtains
+        ? `${/muse-spark-open/.test(draft?.ranOn || "") ? "Muse Spark Open, on Baseten," : "Muse Spark"} drafted this from the measuring code's numbers and the example curtain catalogue. Every length in it was checked against them.`
         : `${writer} drafted this from the measuring code's numbers. Every length in it was checked against them. Change anything you like before it goes.`;
       ta.value = draft?.reply || "";
       ta.placeholder = draft
         ? ""
-        : !blinds && hasBlinds(run)
-          ? "This run was sized for the roller blind, so there's no pole draft. Write your reply here, or run it live again with Curtain pole picked."
+        : !blinds && (hasBlinds(run) || hasCurtains(run))
+          ? "This run was sized for another maker, so there's no pole draft. Write your reply here, or run it live again with Curtain pole picked."
           : "No draft for this one yet. Write your reply here.";
     } else {
       $("replyLabel").textContent = "Ask for a re-film";

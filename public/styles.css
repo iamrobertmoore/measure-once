@@ -215,11 +215,11 @@ a { color: inherit; }
 /* the size, read off the drawing */
 .side-col { min-width: 0; }
 .seller {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px;
   border-radius: 9px; background: rgba(8,17,31,.55); border: 1px solid var(--line);
 }
 .seg-btn {
-  border: 0; background: transparent; border-radius: 6px; padding: 7px 10px; cursor: pointer;
+  border: 0; background: transparent; border-radius: 6px; padding: 7px 6px; cursor: pointer; white-space: nowrap;
   font-size: 13.5px; font-weight: 620; color: var(--muted); transition: background .15s, color .15s;
 }
 .seg-btn:hover:not(:disabled):not([aria-pressed="true"]) { color: var(--text); }
