@@ -21,5 +21,12 @@
       "maxDuration": 300,
       "memory": 1769
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/rob",
+      "destination": "/buyer.html?shop=creationsfromrob",
+      "permanent": false
+    }
+  ]
 }
