@@ -449,7 +449,7 @@ function curtainFacts(run) {
     })
     .join("");
   return `<div class="fact-block">
-    <p class="fact-label">The curtains to make, for a ${cmClean(opts[0].poleMm)} cm pole</p>
+    <p class="fact-label">The curtains to make, for ${/^(8|11|18)/.test(cmClean(opts[0].poleMm)) ? "an" : "a"} ${cmClean(opts[0].poleMm)} cm pole</p>
     <ul class="blind-opts">${items}</ul>
   </div>`;
 }

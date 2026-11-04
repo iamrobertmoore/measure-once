@@ -95,11 +95,11 @@ $("go").addEventListener("click", async () => {
 function suggestion(run) {
   if (shop.seller === "blinds" && run.blinds?.options?.length) {
     const b = run.blinds.options[0];
-    return { title: `A ${cmClean(b.widthMm)} cm wide roller blind, ${b.fit.startsWith("outside") ? "fitted outside the frame" : "fitted inside the recess"}`, holds: null };
+    return { title: `${/^(8|11|18)/.test(cmClean(b.widthMm)) ? "An" : "A"} ${cmClean(b.widthMm)} cm wide roller blind, ${b.fit.startsWith("outside") ? "fitted outside the frame" : "fitted inside the recess"}`, holds: null };
   }
   if (shop.seller === "curtains" && run.curtains?.options?.length) {
     const c = run.curtains.options[0];
-    return { title: `A pair of ${c.heading} curtains, ${cmClean(c.eachCurtainMm)} cm each, for a ${cmClean(c.poleMm)} cm pole`, holds: null };
+    return { title: `A pair of ${c.heading} curtains, ${cmClean(c.eachCurtainMm)} cm each, for ${/^(8|11|18)/.test(cmClean(c.poleMm)) ? "an" : "a"} ${cmClean(c.poleMm)} cm pole`, holds: null };
   }
   const o = run.options?.[0];
   if (!o) return { title: "", holds: null };

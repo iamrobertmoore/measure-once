@@ -110,7 +110,8 @@ const facts: Record<string, string | number> = {
     const all = todayRuns.map((x: any) => Math.abs(x.widthMm - tapeById[x.id]));
     const op = JSON.parse(readFileSync("public/samples/masked-open.json", "utf8")).rows, hs = JSON.parse(readFileSync("public/samples/masked.json", "utf8")).rows;
     const sameAsHosted = op.filter((o: any) => hs.some((h: any) => h.id === o.id && h.recess === o.recess)).length;
-    return { today_runs: todayRuns.length, today_median_cm: cm(medOf(errs)), today_worst_cm: cm(Math.max(...all)), open_pick_runs: op.length, open_pick_same: sameAsHosted }; })(), ...ablation, ...loo, ...masked,
+    const pickMm = Math.round(Math.max(...op.flatMap((o: any) => hs.filter((h: any) => h.id === o.id).map((h: any) => Math.abs(h.widthMm - o.widthMm)))));
+    return { open_pick_mm: pickMm, today_runs: todayRuns.length, today_median_cm: cm(medOf(errs)), today_worst_cm: cm(Math.max(...all)), open_pick_runs: op.length, open_pick_same: sameAsHosted }; })(), ...ablation, ...loo, ...masked,
   ref_render_check: ref("src/render.ts", "best.coverage >= 0.85"),
   likely_inside: sure.filter((x) => x.inside).length, likely_holds: sure.filter((x) => x.holds).length, likely_total: sure.length,
   likely_half_cm: `${cm(Math.min(...sure.map((x) => x.half)))} to ${cm(Math.max(...sure.map((x) => x.half)))}`,
@@ -171,7 +172,8 @@ const facts: Record<string, string | number> = {
   ref_open: ref("src/open.ts", "export async function openJson"),
   ...(() => { const rp = JSON.parse(readFileSync("public/samples/repeat.json", "utf8")).rows; const all = Object.values(rp).flat() as any[];
     const spreads = Object.values(rp).map((v: any) => Math.max(...v.map((x: any) => x.widthMm)) - Math.min(...v.map((x: any) => x.widthMm)));
-    return { repeat_runs: all.length, repeat_ok: all.filter((x) => x.ok).length, repeat_spread_mm: Math.round(Math.max(...spreads)), repeat_open: all.filter((x) => String(x.draftBy).includes("muse-spark-open")).length }; })(),
+    return { repeat_runs: all.length, repeat_ok: all.filter((x) => x.ok).length, repeat_spread_mm: Math.round(Math.max(...spreads)), repeat_open: all.filter((x) => String(x.draftBy).includes("muse-spark-open")).length,
+      repeat_secs: (() => { const ms = all.filter((x) => x.totalMs).map((x) => x.totalMs).sort((a: number, b: number) => a - b); return Math.round(ms[Math.floor((ms.length - 1) / 2)] / 1000); })() }; })(),
   open_runs: ids.filter((i: string) => run(i).draft?.ranOn?.includes("muse-spark-open")).length,
   open_secs: 3,
   ref_upload: ref("api/upload.ts", "export default async function handler"),

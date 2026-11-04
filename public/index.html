@@ -41,7 +41,7 @@
   </figure>
   <ul class="stats" id="stats" aria-label="Checked against a steel tape">
     <li><b>1 in 4</b><span>of my Etsy buyer threads ask which size to order, and wait a median 10 hours for my answer</span></li>
-    <li><b id="statErr">2.3 cm</b><span id="statErrNote">median error against a steel tape, on every window it measured</span></li>
+    <li><b id="statErr">3.1 cm</b><span id="statErrNote">median error against a steel tape, today's code re-run 20 times on the 5 windows it measured (worst 5.5 cm)</span></li>
     <li><b id="statFit">5 of 5</b><span id="statFitNote">poles I'd have sent would still have fitted the tape's width</span></li>
   </ul>
 </section>
@@ -210,12 +210,12 @@
     <li>
       <span class="how-n">2</span>
       <h3>Find</h3>
-      <p><b>SAM 3.1</b> finds the sheet and the window in every frame and tracks the buyer's hands. <b>Muse Voice Transcribe</b> hears what they asked.</p>
+      <p><b>SAM 3.1</b> finds the sheet and the window in the sharpest frames, and on full clips tracks the buyer's hands. <b>Muse Voice Transcribe</b> hears what they asked.</p>
     </li>
     <li>
       <span class="how-n">3</span>
       <h3>Measure</h3>
-      <p>Plain code turns the sheet's known size into millimetres. <b>Muse Spark Open</b>, Meta's open-weights model, picks which edges the pole spans, say a recess, and the code measures between them.</p>
+      <p>Plain code turns the sheet's known size into millimetres. <b>Muse Spark Open</b>, Meta's open-weights model, picks which edges the pole spans, say a recess, and the code measures between them. (The recorded clips below were picked by hosted Muse Spark; Open makes the same picks.)</p>
     </li>
     <li>
       <span class="how-n">4</span>

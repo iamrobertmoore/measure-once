@@ -66,7 +66,8 @@ export async function run(apiKey: string, input: { frames: Buffer[]; wav?: Buffe
   const [per, hands, transcript] = await Promise.all([
     Promise.all(input.frames.map((f) => measureStill(api, f).catch((e): StillResult => ({ ok: false, reason: String(e?.message || e) })))),
     Promise.all(input.frames.map((f) => segmentImage(api, `data:image/jpeg;base64,${f.toString("base64")}`, "hand").catch(() => [] as SamObject[]))),
-    input.wav ? transcribeWav(apiKey, input.wav).catch((e) => `(transcription failed: ${e.message})`) : Promise.resolve(""),
+    // A failed transcription is treated as silence, never passed on as if the buyer had said it.
+    input.wav ? transcribeWav(apiKey, input.wav).catch((e) => { timings.transcribeFailed = 1; console.log(`[voice] transcription failed: ${e?.message ?? e}`); return ""; }) : Promise.resolve(""),
   ]);
   timings.measureMs = t() - t0;
   return finish(api, apiKey, { per, frameIdx: input.frames.map((_, i) => i), frameBufs: input.frames, hands, transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0 });
@@ -241,7 +242,8 @@ export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buf
   const [per0, handT, transcript] = await Promise.all([
     Promise.all(picked.map((i) => measureStill(api, input.frames[i], input.paper).catch((e): StillResult => ({ ok: false, reason: String(e?.message || e) })))),
     handsCapped,
-    input.wav ? transcribeWav(apiKey, input.wav).catch((e) => `(transcription failed: ${e.message})`) : Promise.resolve(""),
+    // A failed transcription is treated as silence, never passed on as if the buyer had said it.
+    input.wav ? transcribeWav(apiKey, input.wav).catch((e) => { timings.transcribeFailed = 1; console.log(`[voice] transcription failed: ${e?.message ?? e}`); return ""; }) : Promise.resolve(""),
   ]);
   timings.measureMs = t() - t0;
   // Measure the same thing in every frame: the window outline (frame, surround or wooden frame) most frames chose.
@@ -276,7 +278,7 @@ export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buf
   let per = per0, idx = picked;
   if (handFree.length >= 4) { per = handFree.map((x) => per0[x.k]); idx = handFree.map((x) => x.i); timings.framesWithHandsSetAside = picked.length - handFree.length; }
   const r = await finish(api, apiKey, { per, frameIdx: idx, frameBufs: input.frames, hands: input.frames.map((_, i) => byFrame(handT, i)), transcript, buyerMessage: input.buyerMessage, diameterMm: input.diameterMm, draft: input.draft, timings, t0, minFrames: input.minFrames, seller: input.seller });
-  r.models = ["sam-3.1", ...(input.mp4 ? ["sam-3.1 (video tracking: hands)"] : []), "muse-voice-transcribe-1.0", ...r.models.filter((m) => m.includes("muse-spark"))];
+  r.models = ["sam-3.1", ...(input.mp4 && handT.length ? ["sam-3.1 (video tracking: hands)"] : []), ...(input.wav && !timings.transcribeFailed ? ["muse-voice-transcribe-1.0"] : []), ...r.models.filter((m) => m.includes("muse-spark"))];
   return { ...r, fps: input.fps };
 }
 

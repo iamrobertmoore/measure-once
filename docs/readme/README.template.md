@@ -10,9 +10,18 @@ I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. It's a 
 
 Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet and the window, and on full clips tracks their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark Open, Meta's open-weights model (on Baseten), looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark Open drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
 
-It's in use on my shop now: the link [measure-once.vercel.app/rob]({{live_url}}/rob) is in the saved reply I send any buyer who asks which size to order. They open it on their phone, film the window, and see their size and how sure it is in about a minute; the measurement and a drafted reply land in my own inbox, and nothing goes back to them until I've checked it.
+It's set up for my real buyers now: the link [measure-once.vercel.app/rob]({{live_url}}/rob) is in the saved reply I send any buyer who asks which size to order. They open it on their phone, film the window, and see their size and how sure it is in about a minute; the measurement and a drafted reply land in my own inbox, and nothing goes back to them until I've checked it.
 
 It's built around my shop, but the measuring isn't tied to it. The page has two more catalogues using the usual trade rules: a made-to-measure roller blind (the width to order inside the recess or outside it) and made-to-measure curtains (each curtain's width for pencil pleat or eyelet, and the drop when the clip shows it). The same clip, measured once, sizes all three. Each maker's rules are one small file.
+
+## For judges, in one table
+
+| Criterion | Where to look |
+|---|---|
+| Impact | [My shop](https://www.etsy.com/shop/creationsfromrob), [my inbox numbers](#why-not-just-a-tape-measure), [three other makers](#what-other-makers-said), and [my buyer link]({{live_url}}/rob), which is in the reply I send buyers who ask which size |
+| Use of Meta's models | [How Meta's models are used](#how-metas-models-are-used): Muse Spark Open looks (picks the edges) and writes (the reply); SAM 3.1, Muse Voice Transcribe, Muse Image |
+| Technical depth | [Measured against a tape](#measured-against-a-tape), the [fair model-alone baseline](#muse-spark-alone-versus-the-measuring-code) and the [edge-pick comparison](#which-edges-does-the-pole-span) |
+| Demo | [The video]({{video_url}}) and [the live page]({{live_url}}): try it on your own window |
 
 ## Try it
 
@@ -74,7 +83,7 @@ Both of the first two want a tape check before anything is cut, which is why eve
 1. **The buyer films the window** with the sheet on the wall, and talks: "eyelet curtains, from about here to here."
 2. **SAM 3.1** segments the sheet and the window on the sharpest frames, and tracks the buyer's hands through the whole clip in one video call. That call gets 35 seconds and the size never waits for it: on the five recorded runs it found hands on two, and twice it ran over and the size went ahead without it.
 3. **My code works out millimetres.** The sheet's known size (A4 or US Letter, told apart by its shape) fixes the scale and the window's straight edges fix the angle of the wall. The window is measured to the outside of its trim, where a tape would go, and the frames have to agree.
-4. **Muse Spark Open picks the span.** The code draws every strong vertical edge it finds on the wall beside the window as a lettered line, and Muse Spark Open, the open-weights model, picks the pair the pole has to span, from the picture and what the buyer said (with any lengths they said hidden). Up to five sharp frames vote; the code measures between the chosen lines. If Baseten can't answer, hosted Muse Spark picks instead.
+4. **Muse Spark Open picks the span.** The code draws every strong vertical edge it finds on the wall beside the window as a lettered line, and Muse Spark Open, the open-weights model, picks the pair the pole has to span, from the picture and what the buyer said (with any lengths they said hidden). Up to five sharp frames vote; the code measures between the chosen lines. If Baseten can't answer, hosted Muse Spark picks instead. (The recorded runs on the page date from before the switch, so there hosted Muse Spark picked; re-run on every clip, Muse Spark Open made the same call all 10 times, with widths within {{open_pick_mm}} mm.)
 5. **Muse Voice Transcribe** hears the request, with curtain words passed as keywords.
 6. **My catalogue rules** pick the pole: 15 to 20 cm past the opening each side, the shortest stock length that works, the cut taken equally off each end so the join stays central.
 7. **Muse Spark Open** (open weights, on Baseten) drafts my reply in my voice from those numbers. If the buyer said a length that disagrees with ours, the reply gives both sizes and asks.
@@ -89,7 +98,7 @@ For my living room window it recommends the **{{lr_pole}}**, taking **{{lr_cut_e
 |---|---|---|
 | SAM 3.1, images | Finds the A4 sheet and three readings of the window (frame, surround, wooden frame) on each sharp frame | {{ref_sam_image}} |
 | SAM 3.1, video | Tracks the buyer's hands through the whole clip in one call: where they pointed, and which frames to set aside (on full clips; an upload from the page sends frames only, to stay fast and small) | {{ref_sam_video}} |
-| **Muse Spark Open, looking** (open weights, on Baseten) | Picks which of the lettered edges the pole spans: the trim, or a recess opening around a set-back window. Re-run on every measured clip, it picked the same edges as hosted Muse Spark {{open_pick_same}} of {{open_pick_runs}} times | {{ref_span}}, [`masked-open.json`](public/samples/masked-open.json) |
+| **Muse Spark Open, looking** (open weights, on Baseten) | Picks which of the lettered edges the pole spans: the trim, or a recess opening around a set-back window. Re-run on every measured clip, it made the same call as hosted Muse Spark (recess opening or not) {{open_pick_same}} of {{open_pick_runs}} times, with widths within {{open_pick_mm}} mm | {{ref_span}}, [`masked-open.json`](public/samples/masked-open.json) |
 | Muse Spark 1.3, looking (fallback) | Picks the edges if Baseten can't answer; it picked them on the recorded runs | {{ref_span}} |
 | Muse Voice Transcribe | Hears what the buyer wants, biased to English with curtain words as keywords | {{ref_voice}} |
 | **Muse Spark Open** (open weights, `meta-models/muse-spark-open`, served on Baseten) | Writes the reply: picks among the options the code computed and drafts it in my voice, reconciling the buyer's own numbers. On the {{open_runs}} recorded clips every draft passed the number check first time, in about {{open_secs}} s each. Every live run says which model wrote its draft | {{ref_open}} |
@@ -112,6 +121,8 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 {{windows_total}} real windows filmed on a phone the way a buyer would: 3 in my house and {{other_homes}} in other homes. I measured every tape figure myself with a steel tape, across the outside of the frame or, for a recess, across the opening at the wall face, where the pole goes. It measured {{windows_measured}}, each checked with a steel tape, and asked for a re-film on {{windows_refused}}. Plus 3 clips filmed to fail.
 
 {{tape_table}}
+
+The last column is today's code: each clip re-run four times end to end ([`masked.json`](public/samples/masked.json), [`masked-open.json`](public/samples/masked-open.json)).
 
 Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused {{refused}} of {{refusals}}, each with a reason and how to film it again.
 
@@ -137,11 +148,11 @@ The code finds every strong vertical edge on the wall and letters it. Picking th
 
 {{ablation_table}}
 
-The outline alone misses both recesses; the widest edges catch the recesses but run out to other edges on the living room wall. No single rule gets all five: the model took the outline on the three plain windows and the wider pair on the two recesses. It isn't perfect. On the small recess the code never found the opening's left edge (that side is in shadow), so the best pair on offer was the frame's left side and the opening's right side, which is where its 5.5 cm miss comes from; better edge-finding, not a better pick, is the fix. The buyer's own lengths are hidden from the pick ({{ref_mask}}), so it can't just match their number: re-run that way, hosted Muse Spark and Muse Spark Open each picked the same edges every time.
+The outline alone misses both recesses; the widest edges catch the recesses but run out to other edges on the living room wall. No single rule gets all five: the model took the outline on the three plain windows and the wider pair on the two recesses. It isn't perfect. On the small recess the code never found the opening's left edge (that side is in shadow), so the best pair on offer was the frame's left side and the opening's right side, which is where its 5.5 cm miss comes from; better edge-finding, not a better pick, is the fix. The buyer's own lengths are hidden from the pick ({{ref_mask}}), so it can't just match their number: re-run that way, hosted Muse Spark and Muse Spark Open each made the same call on every clip, every time.
 
 ## Live and recorded
 
-- **Recorded:** each of my clips opens on a run recorded with this code, so the page is instant. Its real end-to-end time is shown under the drawing (a median {{run_seconds}} s over the five measured clips, {{run_seconds_min}} to {{run_seconds_max}} s).
+- **Recorded:** each of my clips opens on a run recorded on 2 and 3 November, so the page is instant. Those runs came from an earlier version: hosted Muse Spark picked the edges, and the buyer's own lengths weren't yet hidden from it (the small window's pick even mentions their 63 cm). They took a median {{run_seconds}} s ({{run_seconds_min}} to {{run_seconds_max}} s). Today's code is re-run in [`masked.json`](public/samples/masked.json) and [`masked-open.json`](public/samples/masked-open.json), and a full run with the reply now takes a median {{repeat_secs}} s ([`repeat.json`](public/samples/repeat.json)). The `handsTimedOut` flag on the recorded runs is an old bug, since fixed: hand tracking ran over its 35 s on two of them.
 - **Live:** **Your window**, **Run it live** and **Show the pole** call Meta's models there and then. A daily cap on each server, and a spend limit on the Meta account, keep the public page from running up a bill.
 - **Approve and send** emails the reply to a demo inbox I own. The page never asks a visitor for an email address, and an uploaded clip isn't kept.
 
@@ -174,7 +185,7 @@ npm test                                          # geometry, catalogue and repl
 ## How this maps to the judging
 
 - **Impact:** a problem from my own inbox, with numbers, and three other makers who'd use it. Roller blind and curtain catalogues run on the same measurement, any shop can make its own buyer link on the page, and anyone can try it on their own window.
-- **Use of Meta's tooling:** SAM 3.1 on images, video and Muse Image's output; Muse Spark Open both looking (which edges, matching hosted Muse Spark 10 of 10 times) and writing; Muse Voice Transcribe; Muse Image. The models see and choose, the code measures.
+- **Use of Meta's tooling:** SAM 3.1 on images, video and Muse Image's output; Muse Spark Open both looking (which edges, making the same call as hosted Muse Spark 10 of 10 times) and writing; Muse Voice Transcribe; Muse Image. The models see and choose, the code measures.
 - **Technical depth:** a joint wall-plane fit, sub-pixel edges to the outside of the trim, frames that must agree, a fair model-alone baseline and an edge-pick comparison, the buyer's numbers hidden from the pick, a unit-aware number checker, and a tape-measured test set with clips filmed to fail.
 - **Demo:** a live page with no login that measures your window, and runs the whole pipeline on demand.
 
