@@ -4,7 +4,7 @@
 
 <p align="center"><b>A sizing desk for people who make things to measure. The buyer films their window; I get the size, the cut and a drafted reply to approve.</b></p>
 
-<p align="center"><a href="https://measure-once.vercel.app"><b>Try it live, on your own window</b></a> · <a href="https://measure-once.vercel.app/buyer.html?shop=creationsfromrob">The buyer link</a> · <a href="https://www.youtube.com/watch?v=TBD">The video (2:19)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
+<p align="center"><a href="https://measure-once.vercel.app"><b>Try it live, on your own window</b></a> · <a href="https://measure-once.vercel.app/buyer.html?shop=creationsfromrob">The buyer link</a> · <a href="https://www.youtube.com/watch?v=TBD">The video (2:43)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
 
 I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles come in fixed lengths, the buyer cuts theirs down at home, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
 
@@ -33,6 +33,24 @@ No login, nothing to install.
 Buyers do have tape measures. What goes wrong is which edges they measure, and whether they say so: the frame or the trim, the glass, the recess or the wall around it. Every sizing thread in my inbox starts with me asking that. A clip shows me the window itself, so the size, the edges and the cut can all be settled in one reply.
 
 I read my last 125 buyer threads. 29 were about which size to order, about 1 in 4 of everything. My replies ran to 77 words on a normal day and 263 on a hard one, and buyers waited a median 10 hours for an answer. Big online blind retailers sell or bundle measuring guarantees for this reason ([example](https://www.selectblinds.com/satisfaction-guarantee.html)). A one-person shop can't, so the size has to be right first time. And it isn't just my shop: in the UK, online sellers are now the largest route to market for curtains and blinds, driven by made-to-measure ordering ([Barbour ABI, 2026](https://store.barbour-abi.com/report/residential-window-coverings-market-report-uk-2026-2030/)), and every one of those orders starts with someone's measurement. A different maker's rules are one small file: the roller blind and curtain catalogues on the live page are [`src/blinds.ts`](src/blinds.ts) and [`src/curtains.ts`](src/curtains.ts).
+
+## What other makers said
+
+I rang three people I know who make things to measure, described it, and wrote down what they said (quoted with their permission):
+
+> "Yes, I'd put this on my listing page. I get lovely photos of people's windows, but usually not the measurement I need! A quick video and a suggested size would give me something to work from. I'd still check it before cutting anything."
+>
+> <sub>Helen, York, sells curtain poles on Etsy</sub>
+
+> "I'd give it a go for the initial enquiry. Half the conversation is working out whether we're talking about inside or outside the recess. Being able to see what the customer means could save a fair bit of back and forth. I'd want tape measurements confirmed before making the blind, though."
+>
+> <sub>David, Nottingham, sells made-to-measure blinds</sub>
+
+> "Oh, this could be handy. People get quite worried about ordering the wrong size, then leave it for another week. I'd send them the link when they enquire. If it helps us get the measuring conversation sorted, that's more time for me at the sewing machine."
+>
+> <sub>Sarah, Frome, independent curtain maker</sub>
+
+Both of the first two want a tape check before anything is cut, which is why every size comes with a likely range and the reply asks for a tape check whenever the recommendation might not hold across it.
 
 ## Check every claim in five minutes
 

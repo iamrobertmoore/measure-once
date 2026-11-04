@@ -491,3 +491,8 @@ a { color: inherit; }
 .buylink-copy > p { font-size: 17px; line-height: 1.55; color: var(--muted); margin-top: 12px; }
 .buylink-urls { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .buylink-note { font-size: 13px !important; color: var(--faint) !important; }
+.quotes { list-style: none; padding: 0; margin: 22px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.quotes li { padding: 22px 24px; border-radius: 14px; border: 1px solid var(--line); background: rgba(12,26,46,.55); display: grid; gap: 14px; align-content: space-between; }
+.quotes p { font-size: 16px; line-height: 1.55; color: var(--text); margin: 0; }
+.quotes span { font-size: 13.5px; color: var(--faint); }
+@media (max-width: 900px) { .quotes { grid-template-columns: 1fr; } }
