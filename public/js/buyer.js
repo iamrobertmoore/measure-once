@@ -141,7 +141,9 @@ $("send").addEventListener("click", async () => {
   const L = likely(run);
   const s = suggestion(run);
   const reply = (shop.seller === "blinds" ? run.blinds?.draft?.reply : shop.seller === "curtains" ? run.curtains?.draft?.reply : run.draft?.reply) || "";
-  const summary = [`New sizing request for ${shop.name}`, `Measured: ${cm1(run.widthMm)} cm (likely ${cm1(L.lo)} to ${cm1(L.hi)} cm)`, s.title ? `Suggested: ${s.title}` : "", run.transcript ? `They said: "${run.transcript.trim()}"` : ""].filter(Boolean).join("\n");
+  const who = $("who").value.trim().slice(0, 60);
+  if (!who) { $("sendStatus").className = "send-status err"; $("sendStatus").textContent = `Add your name on Etsy first, so ${shop.maker === "the maker" ? "the maker" : shop.maker} knows who to reply to.`; btn.disabled = false; $("who").focus(); return; }
+  const summary = [`New sizing request for ${shop.name}`, `From: ${who}`, `Measured: ${cm1(run.widthMm)} cm (likely ${cm1(L.lo)} to ${cm1(L.hi)} cm)`, s.title ? `Suggested: ${s.title}` : "", run.transcript ? `They said: "${run.transcript.trim()}"` : ""].filter(Boolean).join("\n");
   try {
     const res = await fetch("api/send", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "request", sample: shopId, summary, reply }) });
     const d = await res.json();
