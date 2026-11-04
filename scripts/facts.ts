@@ -74,9 +74,21 @@ const facts: Record<string, string | number> = {
   ...(() => { const b = JSON.parse(readFileSync("public/samples/baseline.json", "utf8")).rows; const o: any = {};
     for (const [k, id] of [["lr", "living-room"], ["bt", "bathroom"], ["sm", "cloakroom"]]) { const r = b.find((x: any) => x.id === id); o[`${k}_spark_cm`] = r.spark_alone_median_cm; o[`${k}_spark_range`] = `${Math.min(...r.spark_alone_cm)} to ${Math.max(...r.spark_alone_cm)}`; }
     o.spark_spread_cm = Math.max(...b.map((r: any) => Math.max(...r.spark_alone_cm) - Math.min(...r.spark_alone_cm)));
+    const tapeOf: Record<string, string> = { "living-room": "living", bathroom: "bathroom", cloakroom: "small bathroom", "recess-friend": "another home: window in a recess", "small-friend": "another home: small window" };
+    const label: Record<string, string> = { "living-room": "Living room", bathroom: "Bathroom", cloakroom: "Recess opening", "recess-friend": "Recess opening, another home", "small-friend": "Small window, another home" };
+    const b2 = JSON.parse(readFileSync("public/samples/baseline-2.json", "utf8")).rows;
+    o.baseline_count = b2.length;
+    o.baseline_table = ["| Window | Tape | Muse Spark alone, 3 Nov | Muse Spark alone, 4 Nov | Its range across frames (4 Nov) | Measure Once |", "|---|---|---|---|---|---|",
+      ...b2.map((r2: any) => { const t = row(tapeOf[r2.id]); const r1 = b.find((x: any) => x.id === r2.id);
+        return `| ${label[r2.id]} | ${cm(t.tape_mm)} cm | ${r1 ? r1.spark_alone_median_cm + " cm" : "not run"} | ${r2.spark_alone_median_cm} cm | ${Math.min(...r2.spark_alone_cm)} to ${Math.max(...r2.spark_alone_cm)} cm | ${r2.measured_cm} cm |`; })].join("\n");
+    const errs2 = b2.map((r2: any) => Math.abs(r2.spark_alone_median_cm * 10 - row(tapeOf[r2.id]).tape_mm) / 10);
+    o.spark2_err_min = Math.min(...errs2).toFixed(0); o.spark2_err_max = Math.max(...errs2).toFixed(0);
     return o; })(),
   ref_span: ref("src/span.ts", "export async function pickSpan"),
   ref_open: ref("src/open.ts", "export async function openJson"),
+  ...(() => { const rp = JSON.parse(readFileSync("public/samples/repeat.json", "utf8")).rows; const all = Object.values(rp).flat() as any[];
+    const spreads = Object.values(rp).map((v: any) => Math.max(...v.map((x: any) => x.widthMm)) - Math.min(...v.map((x: any) => x.widthMm)));
+    return { repeat_runs: all.length, repeat_ok: all.filter((x) => x.ok).length, repeat_spread_mm: Math.round(Math.max(...spreads)), repeat_open: all.filter((x) => String(x.draftBy).includes("muse-spark-open")).length }; })(),
   open_runs: ids.filter((i: string) => run(i).draft?.ranOn?.includes("muse-spark-open")).length,
   open_secs: 3,
   ref_upload: ref("api/upload.ts", "export default async function handler"),

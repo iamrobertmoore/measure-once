@@ -4,11 +4,11 @@
 
 <p align="center"><b>A sizing desk for people who make things to measure. The buyer films their window; I get the size, the cut and a drafted reply to approve.</b></p>
 
-<p align="center"><a href="{{live_url}}"><b>Try it live, on your own window</b></a> · <a href="{{video_url}}">3-minute video</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
+<p align="center"><a href="{{live_url}}"><b>Try it live, on your own window</b></a> · <a href="{{video_url}}">The video (2:19)</a> · <a href="#measured-against-a-tape">Measured against a tape</a> · <a href="#run-it-yourself">Run it yourself</a></p>
 
 I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles come in fixed lengths, the buyer cuts theirs down at home, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
 
-Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
+Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark Open (Meta's open-weights model, on Baseten) drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
 
 It's built around my shop, but the measuring isn't tied to it. The page has a second catalogue, a made-to-measure roller blind using the usual trade rules, and the same clip gives that maker the width to order inside the recess or outside it. Blinds, shutters, curtains and tracks all start with the same question.
 
@@ -29,22 +29,23 @@ No login, nothing to install.
 
 Buyers do have tape measures. What goes wrong is which edges they measure, and whether they say so: the frame or the trim, the glass, the recess or the wall around it. Every sizing thread in my inbox starts with me asking that. A clip shows me the window itself, so the size, the edges and the cut can all be settled in one reply.
 
-I read my last {{inbox_threads_read}} buyer threads. {{inbox_sizing_threads}} were about which size to order, about {{inbox_sizing_share}} of everything. My replies ran to {{inbox_reply_words_median}} words on a normal day and {{inbox_reply_words_p90}} on a hard one, and buyers waited a median {{inbox_wait_hours_median}} hours for an answer. Big online blind retailers sell or bundle measuring guarantees for this reason ([example](https://www.selectblinds.com/satisfaction-guarantee.html)). A one-person shop can't, so the size has to be right first time.
+I read my last {{inbox_threads_read}} buyer threads. {{inbox_sizing_threads}} were about which size to order, about {{inbox_sizing_share}} of everything. My replies ran to {{inbox_reply_words_median}} words on a normal day and {{inbox_reply_words_p90}} on a hard one, and buyers waited a median {{inbox_wait_hours_median}} hours for an answer. Big online blind retailers sell or bundle measuring guarantees for this reason ([example](https://www.selectblinds.com/satisfaction-guarantee.html)). A one-person shop can't, so the size has to be right first time. And it isn't just my shop: in the UK, online sellers are now the largest route to market for curtains and blinds, driven by made-to-measure ordering ([Barbour ABI, 2026](https://store.barbour-abi.com/report/residential-window-coverings-market-report-uk-2026-2030/)), and every one of those orders starts with someone's measurement. A different maker's rules are one small file: the roller blind catalogue on the live page is [`src/blinds.ts`](src/blinds.ts).
 
 ## Check every claim in five minutes
 
 | Claim | Evidence | How to check |
 |---|---|---|
-| It's {{median_err_cm}} cm from a steel tape, median; the poles it chose would all have fitted | {{windows_total}} real windows, {{other_homes}} of them outside my house: {{windows_measured}} measured (worst {{worst_err_cm}} cm, a recess), {{windows_refused}} refused rather than guessed. Cut to the measurement, {{pole_fit_ok}} of {{pole_fit_total}} poles would still fit the tape's width ({{pole_fit_overhangs}} past each side) | [Measured against a tape](#measured-against-a-tape) |
+| It's {{median_err_cm}} cm from a steel tape, median; the poles it chose would all have fitted | {{windows_total}} real windows, {{other_homes}} of them in other homes: {{windows_measured}} measured (worst {{worst_err_cm}} cm, a recess), {{windows_refused}} refused rather than guessed. Cut to the measurement, {{pole_fit_ok}} of {{pole_fit_total}} poles would still fit the tape's width ({{pole_fit_overhangs}} past each side) | [Measured against a tape](#measured-against-a-tape) |
 | The geometry earns its place | Asked to read the width straight off the same frames, Muse Spark alone said {{lr_spark_cm}} cm and {{bt_spark_cm}} cm, and its readings of single frames spread by up to {{spark_spread_cm}} cm | [The baseline](#muse-spark-alone-versus-the-measuring-code) |
-| The reply can't add a length of its own | Every length in a draft, with its unit, must be one the code computed or the buyer said; anything else is rejected. It can't stop a real number landing in the wrong sentence, which is why I read every draft before it goes | {{ref_check}}, tested in `test/checker.ts` |
+| The reply can't add a length of its own | Every length in a draft, with its unit, must be one the code computed (exactly, or rounded to the whole centimetre) or the buyer said; anything else is rejected. It can't stop a real number landing in the wrong sentence, which is why I read every draft before it goes | {{ref_check}}, tested in `test/checker.ts` |
+| It gives the same answer twice | Each recorded clip re-run 3 times end to end: {{repeat_ok}} of {{repeat_runs}} runs measured, the widths never moved more than {{repeat_spread_mm}} mm, the recesses were picked every time, and Muse Spark Open wrote all {{repeat_open}} drafts | [`public/samples/repeat.json`](public/samples/repeat.json) |
 | It knows when not to answer | Three clips filmed to fail (no sheet, curled sheet, steep angle): refused {{refused}} of {{refusals}}, all three on the page | Pick them on the live page |
 | Nothing in the photo changes except the pole | Only SAM's cut-out of the painted pole is pasted back onto the original | {{ref_sam_pole}} |
 | It works on your window, not just mine | **Your window** on the page sends your frames to the same pipeline | {{ref_upload}} |
 
 ## What happens to one clip
 
-<p align="center"><img src="docs/brand/architecture.svg" alt="Clip in; SAM 3.1 finds the sheet, window and hands; code measures; Muse Spark picks which edges the pole spans; catalogue picks the pole; Muse Voice Transcribe hears the request; Muse Spark drafts the reply; Muse Image and SAM 3.1 show the pole; the maker approves" width="880"></p>
+<p align="center"><img src="docs/brand/architecture.svg" alt="Clip in; SAM 3.1 finds the sheet, window and hands; code measures; Muse Spark picks which edges the pole spans; catalogue picks the pole; Muse Voice Transcribe hears the request; Muse Spark Open drafts the reply; Muse Image and SAM 3.1 show the pole; the maker approves" width="880"></p>
 
 1. **The buyer films the window** with the sheet on the wall, and talks: "eyelet curtains, from about here to here."
 2. **SAM 3.1** segments the sheet and the window on the sharpest frames, and tracks the buyer's hands through the whole clip in one video call.
@@ -52,7 +53,7 @@ I read my last {{inbox_threads_read}} buyer threads. {{inbox_sizing_threads}} we
 4. **Muse Spark picks the span.** The code draws every strong vertical edge it finds on the wall beside the window as a lettered line, and Muse Spark picks the pair the pole has to span, from the picture and what the buyer said. Up to five frames vote; the code measures between the chosen lines.
 5. **Muse Voice Transcribe** hears the request, with curtain words passed as keywords.
 6. **My catalogue rules** pick the pole: 15 to 20 cm past the opening each side, the shortest stock length that works, the cut taken equally off each end so the join stays central.
-7. **Muse Spark** drafts my reply in my voice from those numbers. If the buyer said a length that disagrees with ours, the reply gives both sizes and asks.
+7. **Muse Spark Open** (open weights, on Baseten) drafts my reply in my voice from those numbers. If the buyer said a length that disagrees with ours, the reply gives both sizes and asks.
 8. **Muse Image** paints the pole on their window, and **SAM 3.1** cuts the painted pole back out, so only the pole is added.
 9. **I approve and send.**
 
@@ -75,11 +76,11 @@ The split is deliberate. The models see, choose, hear, write and paint. The numb
 
 ## Measured against a tape
 
-{{windows_total}} real windows, each measured with a tape: 3 in my house and {{other_homes}} elsewhere, filmed on a phone the way a buyer would. Plus 3 clips filmed to fail.
+{{windows_total}} real windows filmed on a phone the way a buyer would: 3 in my house and {{other_homes}} in other homes. It measured {{windows_measured}}, each checked with a steel tape, and asked for a re-film on {{windows_refused}}. Plus 3 clips filmed to fail.
 
 {{tape_table}}
 
-Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused {{refused}} of {{refusals}}, each with the right reason.
+Clips filmed to fail (no sheet, a curled sheet, a steep angle): refused {{refused}} of {{refusals}}, each with a reason and how to film it again.
 
 Over the {{windows_measured}} windows it measured, the median error is {{median_err_cm}} cm and the worst {{worst_err_cm}} cm; on the {{plain_count}} plain windows it's within {{plain_within_cm}} cm. The question that matters is whether the pole would fit: cut to each measurement, the pole sits {{pole_fit_overhangs}} past each side of the width the tape measured, so {{pole_fit_ok}} of {{pole_fit_total}} would fit ({{pole_fit_band}} inside my usual 15 to 20 cm). The {{recess_count}} recessed windows are the hard ones ({{recess_errs}}): the frame sits back from the wall, so Muse Spark picks the recess opening on the wall and the code measures that. When the buyer's own number differs, the reply says both and sizes both, for example: "{{sm_reply_quote}}"
 
@@ -87,13 +88,9 @@ Two windows were refused rather than guessed: one had the sheet resting on top o
 
 ### Muse Spark alone versus the measuring code
 
-The same frames, with Muse Spark asked to read the width straight off the picture using the sheet as a scale:
+The same frames, with Muse Spark asked to read the width straight off the picture using the sheet as a scale. I ran it on two days; its answers moved by up to 15 cm between runs, and on 4 November it was {{spark2_err_min}} to {{spark2_err_max}} cm from the tape:
 
-| Window | Tape | Muse Spark alone (median of frames) | Its range across frames | Measure Once |
-|---|---|---|---|---|
-| Living room | {{lr_tape_cm}} cm | {{lr_spark_cm}} cm | {{lr_spark_range}} cm | {{lr_measured_cm}} cm |
-| Bathroom | {{bt_tape_cm}} cm | {{bt_spark_cm}} cm | {{bt_spark_range}} cm | {{bt_measured_cm}} cm |
-| Recess opening | {{sm_tape_cm}} cm | {{sm_spark_cm}} cm | {{sm_spark_range}} cm | {{sm_measured_cm}} cm |
+{{baseline_table}}
 
 Muse Spark knows which edges matter (alone, it went for the recess opening too), but it can't measure them. The code measures well but can't tell which edges matter. Together they do both. `scripts/baseline-spark.ts` re-runs this.
 
@@ -132,7 +129,7 @@ npm test                                          # geometry, catalogue and repl
 ## How this maps to the judging
 
 - **Impact:** a problem from my own inbox, with numbers. A second maker's catalogue (roller blinds) runs on the same measurement, and anyone can try it on their own window.
-- **Use of Meta's tooling:** SAM 3.1 on images, video and Muse Image's output; Muse Spark both looking (which edges) and writing; Muse Voice Transcribe; Muse Image. The models see and choose, the code measures.
+- **Use of Meta's tooling:** SAM 3.1 on images, video and Muse Image's output; Muse Spark looking (which edges) and Muse Spark Open writing; Muse Voice Transcribe; Muse Image. The models see and choose, the code measures.
 - **Technical depth:** a joint wall-plane fit, sub-pixel edges to the outside of the trim, frames that must agree, a model-alone baseline, a unit-aware number checker, and a tape-measured test set with clips filmed to fail.
 - **Demo:** a live page with no login that measures your window, and runs the whole pipeline on demand.
 

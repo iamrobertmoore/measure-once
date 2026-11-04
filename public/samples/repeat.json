@@ -1,0 +1,121 @@
+{
+ "ranAt": "2026-11-04",
+ "note": "Each recorded clip re-run 3 times, end to end, on the same code as the live site",
+ "rows": {
+  "bathroom": [
+   {
+    "ok": true,
+    "widthMm": 1209.7,
+    "recessOpening": false,
+    "totalMs": 96190,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 1209.7,
+    "recessOpening": false,
+    "totalMs": 42794,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 1209.7,
+    "recessOpening": false,
+    "totalMs": 96733,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   }
+  ],
+  "cloakroom": [
+   {
+    "ok": true,
+    "widthMm": 541.0,
+    "recessOpening": true,
+    "totalMs": 51020,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 534.7,
+    "recessOpening": true,
+    "totalMs": 43348,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 532.9,
+    "recessOpening": true,
+    "totalMs": 42330,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   }
+  ],
+  "living-room": [
+   {
+    "ok": true,
+    "widthMm": 2186.6,
+    "recessOpening": false,
+    "totalMs": 35578,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 2186.6,
+    "recessOpening": false,
+    "totalMs": 55326,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 2186.6,
+    "recessOpening": false,
+    "totalMs": 44226,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   }
+  ],
+  "recess-friend": [
+   {
+    "ok": true,
+    "widthMm": 601.5,
+    "recessOpening": true,
+    "totalMs": 40696,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 601.2,
+    "recessOpening": true,
+    "totalMs": 100803,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 601.5,
+    "recessOpening": true,
+    "totalMs": 45142,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   }
+  ],
+  "small-friend": [
+   {
+    "ok": true,
+    "widthMm": 606.5,
+    "recessOpening": false,
+    "totalMs": 64412,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 606.5,
+    "recessOpening": false,
+    "totalMs": 40509,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   },
+   {
+    "ok": true,
+    "widthMm": 606.5,
+    "recessOpening": false,
+    "totalMs": 31381,
+    "draftBy": "meta-models/muse-spark-open on Baseten"
+   }
+  ]
+ }
+}

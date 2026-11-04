@@ -6,7 +6,7 @@ import { client } from "../src/sam.ts";
 import { key } from "../src/live.ts";
 process.env.MODEL_API_KEY_FILE ??= ".secrets/meta_api_key"; // local runs only
 const api = client(key());
-const ids = ["living-room", "bathroom", "cloakroom"];
+const ids = ["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"];
 const ask = async (jpeg: Buffer) => {
   const small = await sharp(jpeg).resize(1280).jpeg({ quality: 85 }).toBuffer();
   const res: any = await api.responses.create({

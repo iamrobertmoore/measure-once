@@ -456,7 +456,7 @@ function renderFacts(run, id, still = false) {
   let html = `<div>
     <p class="fact-label">${opening ? "Opening width" : "Frame width"}</p>
     <p class="numeral"><span id="fw">${reduce ? cm1(run.widthMm) : "0.0"}</span><span class="unit">cm</span></p>
-    <p class="fact-sub">Measured on ${used} frame${used === 1 ? "" : "s"}${run.spreadMm != null ? `, which agree within \u00b1${cm1(run.spreadMm / 2)} cm` : ""}</p>
+    <p class="fact-sub">Measured on ${used} frame${used === 1 ? "" : "s"}${run.spreadMm != null ? `; they agree with each other within \u00b1${cm1(run.spreadMm / 2)} cm` : ""}</p>
     ${sl ? `<p class="fact-span"><span class="spark-tag">Muse Spark</span> ${sl}</p>` : ""}
   </div>`;
   if (blinds) html += blindFacts(run);
@@ -1125,7 +1125,7 @@ async function loadAccuracy() {
         }
         const e = r.error_mm != null ? r.error_mm : r.measured_mm - r.tape_mm;
         const f = poleFit(r);
-        const fitLine = f ? `<span class="acc-fit${f.ok ? "" : " no"}">With the tape's width, the pole I'd have sent sits ${cm1(f.overhangMm)} cm past each side${f.inBand ? ", inside my usual 15 to 20 cm" : f.ok ? ", still a fit" : ", too short"}</span>` : "";
+        const fitLine = f ? `<span class="acc-fit${f.inBand ? "" : f.ok ? " near" : " no"}">With the tape's width, the pole I'd have sent sits ${cm1(f.overhangMm)} cm past each side${f.inBand ? ", inside my usual 15 to 20 cm" : f.ok ? ", just under my usual 15 to 20 cm but it still fits" : ", too short"}</span>` : "";
         return `<li><p class="acc-name">${name(r.window)}</p>
           <div class="acc-bars-wrap"><div class="acc-bars" role="img" aria-label="Tape ${cm1(r.tape_mm)} cm, Measure Once ${cm1(r.measured_mm)} cm">
             <span class="acc-bar t" style="width:${pct(r.tape_mm)}"></span><span class="acc-bar m" style="width:${pct(r.measured_mm)}"></span></div>${fitLine}</div>
