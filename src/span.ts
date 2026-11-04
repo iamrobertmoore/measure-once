@@ -83,6 +83,10 @@ export async function labelledFrame(jpeg: Buffer, G: number[], wall: { y0: numbe
   return sharp(drawn).resize(outW).jpeg({ quality: 86 }).toBuffer();
 }
 
+/** The buyer's own lengths are hidden from the edge pick: it has to choose from what it sees and what they point at or
+ *  describe, not by matching a number. Their number comes back in the reply, which compares it with the measurement. */
+export const maskNumbers = (t: string) => t.replace(/\b\d+(?:[.,]\d+)?\s*(?:cm|centimet(?:er|re)s?|mm|millimet(?:er|re)s?|m|metres?|meters?|inch(?:es)?|in|feet|foot|ft)?\b/gi, "[a length]");
+
 /** Ask Muse Spark which two lettered lines the pole has to span. */
 export async function askSpan(api: OpenAI, labelled: Buffer, letters: string[], transcript: string, measured = "", model = "muse-spark-1.3"): Promise<{ left: string; right: string; why: string } | null> {
   const res: any = await api.responses.create({
@@ -90,7 +94,7 @@ export async function askSpan(api: OpenAI, labelled: Buffer, letters: string[], 
     input: [{ role: "user", content: [
       { type: "input_image", image_url: `data:image/jpeg;base64,${labelled.toString("base64")}` },
       { type: "input_text", text:
-`A buyer filmed this window with a sheet of A4 on the wall; they want a curtain pole fixed on the wall above it.${transcript ? ` They said: "${transcript.slice(0, 600)}".` : ""}
+`A buyer filmed this window with a sheet of A4 on the wall; they want a curtain pole fixed on the wall above it.${transcript ? ` They said: "${maskNumbers(transcript).slice(0, 600)}".` : ""}
 I've drawn lettered vertical lines (${letters.join(", ")}). ${measured ? `Lines ${measured} are the window's outer edges as my measuring tool found them; the others are strong edges further out on the wall.` : ""} The pole has to span the window's opening as seen on the main wall face: the outside of any trim or surround, or, if the window is set back in a recess, the edges of the recess opening where it meets the wall face (not the frame inside the recess). Which line is the left edge of that span, and which is the right? JSON only: {"left": "<letter>", "right": "<letter>", "why": "<a few words>"}` },
     ] }],
   } as any);

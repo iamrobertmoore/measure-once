@@ -1,6 +1,7 @@
 // jointFitEdges on exact synthetic edge samples, with and without the bottom side.
 import { jointFitEdges, type Pt } from "../src/geometry.ts";
 import { camera, rect, win, sheet, W, H, f } from "./scene.ts";
+let fails = 0;
 for (const [yaw, pitch] of [[0, 0], [15, 5], [25, -8]]) {
   const proj = camera(W, H, f, 2600, yaw, pitch, [win.w / 2 - 250, win.h * 0.4, 0]);
   const S = rect(sheet).map(proj), Wc = rect(win).map(proj);
@@ -9,4 +10,6 @@ for (const [yaw, pitch] of [[0, 0], [15, 5], [25, -8]]) {
   const rough = Wc.map((p) => ({ x: p.x + 3, y: p.y - 2 }));
   const full = jointFitEdges(S, sides, rough), noBottom = jointFitEdges(S, [sides[0], sides[1], [], sides[3]], rough);
   console.log(`yaw ${yaw} pitch ${pitch}: all sides err ${(full.widthMm - win.w).toFixed(2)} mm | no bottom err ${(noBottom.widthMm - win.w).toFixed(2)} mm`);
+  if (Math.abs(full.widthMm - win.w) > 1 || Math.abs(noBottom.widthMm - win.w) > 1) fails++;
 }
+if (fails) { console.log(`edge fit: ${fails} scenario(s) more than 1 mm out`); process.exit(1); }

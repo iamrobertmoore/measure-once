@@ -7,10 +7,10 @@
     "test": "test"
   },
   "scripts": {
-    "test": "tsx test/synthetic.ts && tsx test/tilt.ts && tsx test/edges.ts && tsx test/image.ts && tsx test/catalogue.ts && tsx test/checker.ts",
+    "test": "tsx test/tilt.ts && tsx test/edges.ts && tsx test/image.ts && tsx test/catalogue.ts && tsx test/checker.ts",
     "start": "tsx server.ts",
     "measure": "tsx scripts/measure.ts",
-    "study": "tsx test/multiframe.ts"
+    "study": "tsx test/synthetic.ts && tsx test/multiframe.ts"
   },
   "keywords": [],
   "author": "",

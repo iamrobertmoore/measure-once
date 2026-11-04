@@ -235,7 +235,9 @@ export async function runClip(apiKey: string, input: { mp4?: Buffer; frames: Buf
     return h;
   })().catch((e) => { timings.handsFailed = 1; return [] as SamObject[]; });
   // The hands say where the buyer pointed past the frame; the width itself never waits on a slow tracking call.
-  const handsCapped = Promise.race([handsP, new Promise<SamObject[]>((res) => { setTimeout(() => { timings.handsTimedOut = 1; res([]); }, Number(process.env.HANDS_TIMEOUT_MS || 35000)).unref?.(); })]);
+  let handsDone = false; handsP.finally(() => { handsDone = true; });
+  // Only a call still running at the cap counts as timed out (before, the flag was set on every run).
+  const handsCapped = Promise.race([handsP, new Promise<SamObject[]>((res) => { setTimeout(() => { if (!handsDone) timings.handsTimedOut = 1; res([]); }, Number(process.env.HANDS_TIMEOUT_MS || 35000)).unref?.(); })]);
   const [per0, handT, transcript] = await Promise.all([
     Promise.all(picked.map((i) => measureStill(api, input.frames[i], input.paper).catch((e): StillResult => ({ ok: false, reason: String(e?.message || e) })))),
     handsCapped,

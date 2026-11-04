@@ -8,7 +8,7 @@
 
 I make reclaimed-wood curtain poles in Whitstable and sell them on Etsy. Poles come in fixed lengths, the buyer cuts theirs down at home, and a cut pole can't come back. So a lot of my day is people asking which size to order, and every answer starts with "could you measure from here to here".
 
-Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet, the window and their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark Open (Meta's open-weights model, on Baseten) drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
+Measure Once is the desk I wanted for that. The buyer films their window for a few seconds with a sheet of A4 (or US Letter) taped flat on the wall and says what they want. SAM 3.1 finds the sheet and the window, and on full clips tracks their hands. My code turns pixels into centimetres, using the sheet's known size. Muse Spark looks at the edges the code found and decides which ones the pole has to span. My catalogue rules pick the pole and the cut, Muse Spark Open (Meta's open-weights model, on Baseten) drafts my reply in my words, Muse Image shows the pole on their own wall, and I check it and press send.
 
 Buyers reach it through one link on my listings. They open it on their phone, film the window, and see their size and how sure it is straight away; I get the measurement and the drafted reply by email, and nothing goes back to them until I've checked it.
 
@@ -57,10 +57,11 @@ Both of the first two want a tape check before anything is cut, which is why eve
 | Claim | Evidence | How to check |
 |---|---|---|
 | It's {{median_err_cm}} cm from a steel tape, median; the poles it chose would all have fitted | {{windows_total}} real windows, {{other_homes}} of them in other homes: {{windows_measured}} measured (worst {{worst_err_cm}} cm, a recess), {{windows_refused}} refused rather than guessed. Cut to the measurement, {{pole_fit_ok}} of {{pole_fit_total}} poles would still fit the tape's width ({{pole_fit_overhangs}} past each side) | [Measured against a tape](#measured-against-a-tape) |
-| The geometry earns its place | Asked to read the width straight off the same frames, Muse Spark alone said {{lr_spark_cm}} cm and {{bt_spark_cm}} cm, and its readings of single frames spread by up to {{spark_spread_cm}} cm | [The baseline](#muse-spark-alone-versus-the-measuring-code) |
+| The measuring code earns its place | Asked the same question from the same full-size frames, Muse Spark alone was a median {{spark3_err_median}} cm out but {{spark3_err_max}} cm out on two windows, and its single-frame answers swung by up to {{spark3_swing}} cm. With the code, the worst was {{worst_err_cm}} cm | [The baseline](#muse-spark-alone-versus-the-measuring-code) |
+| The model earns its place too | On the same lettered edges, the code's outline alone is {{ablation_outline_worst}} cm out at worst (it misses both recesses) and the widest edges {{ablation_widest_worst}} cm; Muse Spark's pick, {{ablation_spark_worst}} cm | [Which edges?](#which-edges-does-the-pole-span) |
 | The reply can't add a length of its own | Every length in a draft, with its unit, must be one the code computed (exactly, or rounded to the whole centimetre) or the buyer said; anything else is rejected. It can't stop a real number landing in the wrong sentence, which is why I read every draft before it goes | {{ref_check}}, tested in `test/checker.ts` |
-| It gives the same answer twice | Each recorded clip re-run 3 times end to end: {{repeat_ok}} of {{repeat_runs}} runs measured, the widths never moved more than {{repeat_spread_mm}} mm, the recesses were picked every time, and Muse Spark Open wrote all {{repeat_open}} drafts | [`public/samples/repeat.json`](public/samples/repeat.json) |
-| It says how sure it is | Every size comes with a likely range ({{likely_half_cm}} cm each side here), from how much the frames disagree plus how far that kind of window has been from the tape. The tape was inside the range on {{likely_inside}} of {{likely_total}} windows, and the pole it chose fits across the whole range on {{likely_holds}} of {{likely_total}}. The range is set from these same windows, so this is a consistency check, not proof | [`src/sure.ts`](src/sure.ts) |
+| It gives the same answer twice, and doesn't copy the buyer's number | Each recorded clip re-run 3 times end to end: {{repeat_ok}} of {{repeat_runs}} measured, widths within {{repeat_spread_mm}} mm of each other, the recesses picked every time. Then {{masked_runs}} more runs on today's code with every length the buyer said hidden from the edge pick: the same pick {{masked_same_pick}} of {{masked_runs}} times, widths within {{masked_max_move_mm}} mm of the recorded runs | [`repeat.json`](public/samples/repeat.json), [`masked.json`](public/samples/masked.json) |
+| It says how sure it is | Every size comes with a likely range ({{likely_half_cm}} cm each side here), from how much the frames disagree plus how far that kind of window has been from the tape. The tape was inside the range on {{likely_inside}} of {{likely_total}} windows, and the pole it chose fits across the whole range on {{likely_holds}} of {{likely_total}}. The range is set from these same windows, so I also checked it leaving each window out of its own range: then the tape is inside on {{loo_inside}} of {{loo_total}}. With five windows it's a working estimate, and the reply asks for a tape check whenever the pole might not hold | [`src/sure.ts`](src/sure.ts) |
 | One frame isn't enough | On the plain windows, a single frame alone was a median {{single_median_cm}} cm from the tape but up to {{single_worst_cm}} cm off; the frames' median never more than {{plain_within_cm}} cm | `frames` in each `public/samples/*/run.json` |
 | It knows when not to answer | Three clips filmed to fail (no sheet, curled sheet, steep angle): refused {{refused}} of {{refusals}}, all three on the page | Pick them on the live page |
 | Nothing in the photo changes except the pole | Only SAM's cut-out of the painted pole is pasted back onto the original | {{ref_sam_pole}} |
@@ -71,7 +72,7 @@ Both of the first two want a tape check before anything is cut, which is why eve
 <p align="center"><img src="docs/brand/architecture.svg" alt="Clip in; SAM 3.1 finds the sheet, window and hands; code measures; Muse Spark picks which edges the pole spans; catalogue picks the pole; Muse Voice Transcribe hears the request; Muse Spark Open drafts the reply; Muse Image and SAM 3.1 show the pole; the maker approves" width="880"></p>
 
 1. **The buyer films the window** with the sheet on the wall, and talks: "eyelet curtains, from about here to here."
-2. **SAM 3.1** segments the sheet and the window on the sharpest frames, and tracks the buyer's hands through the whole clip in one video call.
+2. **SAM 3.1** segments the sheet and the window on the sharpest frames, and tracks the buyer's hands through the whole clip in one video call. That call gets 35 seconds and the size never waits for it: on the five recorded runs it found hands on two, and twice it ran over and the size went ahead without it.
 3. **My code works out millimetres.** The sheet's known size (A4 or US Letter, told apart by its shape) fixes the scale and the window's straight edges fix the angle of the wall. The window is measured to the outside of its trim, where a tape would go, and the frames have to agree.
 4. **Muse Spark picks the span.** The code draws every strong vertical edge it finds on the wall beside the window as a lettered line, and Muse Spark picks the pair the pole has to span, from the picture and what the buyer said. Up to five frames vote; the code measures between the chosen lines.
 5. **Muse Voice Transcribe** hears the request, with curtain words passed as keywords.
@@ -121,15 +122,23 @@ Two windows were refused rather than guessed: one had the sheet resting on top o
 
 ### Muse Spark alone versus the measuring code
 
-The same frames, with Muse Spark asked to read the width straight off the picture using the sheet as a scale. I ran it on two days; its answers moved by up to 15 cm between runs, and on 4 November it was {{spark2_err_min}} to {{spark2_err_max}} cm from the tape:
+The same full-size frames, with Muse Spark asked the same question the pipeline answers (the outside of the trim, or a recess opening at the wall face), using the sheet as its scale:
 
 {{baseline_table}}
 
-Muse Spark knows which edges matter (alone, it went for the recess opening too), but it can't measure them. The code measures well but can't tell which edges matter. Together they do both. `scripts/baseline-spark.ts` re-runs this.
+It's a fair fight, and Muse Spark alone does better than I expected: within 2 cm on three windows. But it was 11 cm out on two, and its answers for one window swung by up to {{spark3_swing}} cm from frame to frame, so any single answer is a gamble. The code's worst was {{worst_err_cm}} cm and its frames agree to within millimetres. (Two earlier runs, with a vaguer question and frames shrunk to 1280 px, were {{spark2_err_min}} to {{spark2_err_max}} cm out; they're in `baseline.json` and `baseline-2.json`.) `FAIR=1 npx tsx scripts/baseline-spark.ts` re-runs it.
+
+### Which edges does the pole span?
+
+The code finds every strong vertical edge on the wall and letters it. Picking the pair is the model's job, and a simple rule can't do it. The same edges on each clip's main frame, chosen three ways:
+
+{{ablation_table}}
+
+The outline alone misses both recesses; the widest edges catch the recesses but run out to other edges on the living room wall. Only Muse Spark's pick gets all five. The buyer's own lengths are hidden from that pick ({{ref_mask}}), so it can't just match their number: re-run that way, it picked the same edges every time.
 
 ## Live and recorded
 
-- **Recorded:** each of my clips opens on a run recorded with this code, so the page is instant. Its real end-to-end time is shown under the drawing (about {{run_seconds}} s; the slowest was {{run_seconds_max}} s).
+- **Recorded:** each of my clips opens on a run recorded with this code, so the page is instant. Its real end-to-end time is shown under the drawing (a median {{run_seconds}} s over the five measured clips, {{run_seconds_min}} to {{run_seconds_max}} s).
 - **Live:** **Your window**, **Run it live** and **Show the pole** call Meta's models there and then. A daily cap on each server, and a spend limit on the Meta account, keep the public page from running up a bill.
 - **Approve and send** emails the reply to a demo inbox I own. The page never asks a visitor for an email address, and an uploaded clip isn't kept.
 
@@ -161,9 +170,9 @@ npm test                                          # geometry, catalogue and repl
 
 ## How this maps to the judging
 
-- **Impact:** a problem from my own inbox, with numbers. A second maker's catalogue (roller blinds) runs on the same measurement, and anyone can try it on their own window.
+- **Impact:** a problem from my own inbox, with numbers, and three other makers who'd use it. Roller blind and curtain catalogues run on the same measurement, any shop gets a buyer link, and anyone can try it on their own window.
 - **Use of Meta's tooling:** SAM 3.1 on images, video and Muse Image's output; Muse Spark looking (which edges) and Muse Spark Open writing; Muse Voice Transcribe; Muse Image. The models see and choose, the code measures.
-- **Technical depth:** a joint wall-plane fit, sub-pixel edges to the outside of the trim, frames that must agree, a model-alone baseline, a unit-aware number checker, and a tape-measured test set with clips filmed to fail.
+- **Technical depth:** a joint wall-plane fit, sub-pixel edges to the outside of the trim, frames that must agree, a fair model-alone baseline and an edge-pick comparison, the buyer's numbers hidden from the pick, a unit-aware number checker, and a tape-measured test set with clips filmed to fail.
 - **Demo:** a live page with no login that measures your window, and runs the whole pipeline on demand.
 
 ## Built for the Meta Global AI Developer Hackathon

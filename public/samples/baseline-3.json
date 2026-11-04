@@ -1,0 +1,83 @@
+{
+ "askedAt": "2026-11-04T10:58:02.585Z",
+ "model": "muse-spark-1.3",
+ "fair": true,
+ "rows": [
+  {
+   "id": "living-room",
+   "frames": 7,
+   "spark_alone_cm": [
+    200,
+    220,
+    220,
+    230,
+    227,
+    220,
+    220
+   ],
+   "spark_alone_median_cm": 220,
+   "measured_cm": 219.8
+  },
+  {
+   "id": "bathroom",
+   "frames": 6,
+   "spark_alone_cm": [
+    111,
+    110,
+    107,
+    110,
+    108,
+    107
+   ],
+   "spark_alone_median_cm": 108,
+   "measured_cm": 121
+  },
+  {
+   "id": "cloakroom",
+   "frames": 8,
+   "spark_alone_cm": [
+    70,
+    69,
+    60,
+    53,
+    50,
+    55,
+    60,
+    68
+   ],
+   "spark_alone_median_cm": 60,
+   "measured_cm": 53.5
+  },
+  {
+   "id": "recess-friend",
+   "frames": 8,
+   "spark_alone_cm": [
+    48,
+    45,
+    45,
+    46,
+    50,
+    44,
+    50,
+    50
+   ],
+   "spark_alone_median_cm": 46,
+   "measured_cm": 60.2
+  },
+  {
+   "id": "small-friend",
+   "frames": 7,
+   "spark_alone_cm": [
+    65,
+    64,
+    60,
+    64,
+    65,
+    68,
+    67
+   ],
+   "spark_alone_median_cm": 65,
+   "measured_cm": 60.7
+  }
+ ]
+}

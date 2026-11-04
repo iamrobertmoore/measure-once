@@ -551,7 +551,7 @@ function renderReply(run, id, changed) {
   if (qs.length) {
     box.hidden = false;
     box.innerHTML =
-      `<p>Muse Spark suggests asking:</p>` +
+      `<p>${/muse-spark-open/.test(draft?.ranOn || "") ? "Muse Spark Open" : "Muse Spark"} suggests asking:</p>` +
       qs
         .map(
           (q, i) =>

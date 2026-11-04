@@ -50,4 +50,5 @@ for (const [dist, yaw, pitch, dil] of [[2600, 15, 5, 2], [3000, 25, 10, -2], [22
   }
   const r = summarise(raw), s = summarise(snapped);
   console.log(`dist ${dist} yaw ${yaw} mask bias ${dil}px: mask-only median err ${r.median.toFixed(1)} mm | snapped to image edges median err ${s.median.toFixed(1)} mm (IQR ${s.iqr.toFixed(1)})`);
+  if (Math.abs(s.median) > 2) { console.log("snapped width more than 2 mm out"); process.exitCode = 1; }
 }

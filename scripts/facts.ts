@@ -55,12 +55,50 @@ const writers = (() => {
     `| Muse Spark 1.3, hosted | ${s.n} | ${s.first} of ${s.n} | ${s.secs} s | ${s.words} words | ${s.short} of ${s.n} |`].join("\n"),
     writers_open_secs: o.secs, writers_speedup: Math.round(Number(s.secs) / Number(o.secs)), writers_spark_secs: s.secs, writers_n: o.n };
 })();
+// Does the edge pick need a model? The same lettered edges on each clip's main frame, chosen three ways.
+const ablation = (() => {
+  const names: Record<string, string> = { "living-room": "Living room", bathroom: "Bathroom", cloakroom: "Small window in a recess", "recess-friend": "Another home, recess", "small-friend": "Another home, small window" };
+  const rows = measured.map((r: any) => {
+    const id = ids.find((i: string) => { const y = run(i); return y.ok && Math.round(y.widthMm) === r.measured_mm; });
+    const sp = run(id).span, E = sp.edges as any[], x = (l: string) => E.find((e) => e.label === l).xMm;
+    const m = E.filter((e) => e.measured), outline = Math.max(...m.map((e) => e.xMm)) - Math.min(...m.map((e) => e.xMm));
+    const widest = Math.max(...E.map((e) => e.xMm)) - Math.min(...E.map((e) => e.xMm));
+    const spark = x(sp.right) - x(sp.left);
+    return { name: names[id] ?? id, tape: r.tape_mm, outline, widest, spark };
+  });
+  const cell = (v: number, t: number) => `${cm(v)} cm (${signed(Math.round(v - t))} mm)`;
+  const worst = (k: "outline" | "widest" | "spark") => cm(Math.max(...rows.map((r) => Math.abs(r[k] - r.tape))));
+  return { ablation_table: ["| Window | Tape | The code's outline only | The widest edges found | Muse Spark's pick |", "|---|---|---|---|---|",
+    ...rows.map((r) => `| ${r.name} | ${cm(r.tape)} cm | ${cell(r.outline, r.tape)} | ${cell(r.widest, r.tape)} | ${cell(r.spark, r.tape)} |`),
+    `| **Worst** | | **${worst("outline")} cm** | **${worst("widest")} cm** | **${worst("spark")} cm** |`].join("\n"),
+    ablation_outline_worst: worst("outline"), ablation_widest_worst: worst("widest"), ablation_spark_worst: worst("spark") };
+})();
+// The likely range checked without fitting it to the window being checked: each window's systematic term comes only
+// from the other windows of its kind (plain or recess), then is the tape inside the range?
+const loo = (() => {
+  const xs = measured.map((r: any) => { const id = ids.find((i: string) => { const y = run(i); return y.ok && Math.round(y.widthMm) === r.measured_mm; }); return { r, x: run(id) }; });
+  let inside = 0;
+  for (const { r, x } of xs) {
+    const same = xs.filter((o) => o.r !== r && !!o.x.span?.adopted === !!x.span?.adopted).map((o) => Math.abs(o.r.error_mm));
+    const sys = same.length ? Math.max(...same) / 2 : 29;
+    const random = Math.max(0, x.spreadMm) / 1.35 / Math.sqrt(Math.max(1, x.framesUsed));
+    const half = 2 * Math.sqrt(random * random + sys * sys);
+    if (Math.abs(r.tape_mm - x.widthMm) <= half) inside++;
+  }
+  return { loo_inside: inside, loo_total: xs.length };
+})();
+// Today's code, re-run end to end with the buyer's lengths hidden from the edge pick (scripts/rerun-masked.ts).
+const masked = (() => {
+  const m = JSON.parse(readFileSync("public/samples/masked.json", "utf8")).rows;
+  return { masked_runs: m.length, masked_ok: m.filter((x: any) => x.ok).length, masked_same_pick: m.filter((x: any) => x.recess === x.recordedRecess).length,
+    masked_max_move_mm: Math.round(Math.max(...m.map((x: any) => Math.abs(x.widthMm - x.recordedWidthMm)))) };
+})();
 const errsAll = measured.map((r: any) => Math.abs(r.error_mm)).sort((a: number, b: number) => a - b);
 const facts: Record<string, string | number> = {
   pole_fit_ok: fits.filter((f) => f.ok).length, pole_fit_total: fits.length, pole_fit_band: fits.filter((f) => f.band).length,
   pole_fit_overhangs: fits.map((f) => `${cm(f.over)} cm`).join(", "),
   worst_err_cm: cm(errsAll[errsAll.length - 1]), median_err_cm: cm(errsAll[Math.floor((errsAll.length - 1) / 2)]),
-  tape_table: tapeTable, ...writers,
+  tape_table: tapeTable, ...writers, ...ablation, ...loo, ...masked,
   ref_render_check: ref("src/render.ts", "best.coverage >= 0.85"),
   likely_inside: sure.filter((x) => x.inside).length, likely_holds: sure.filter((x) => x.holds).length, likely_total: sure.length,
   likely_half_cm: `${cm(Math.min(...sure.map((x) => x.half)))} to ${cm(Math.max(...sure.map((x) => x.half)))}`,
@@ -95,8 +133,9 @@ const facts: Record<string, string | number> = {
   bt_pole: pole(bt.options[0]),
   live_url: process.env.LIVE_URL || "https://measure-once.vercel.app",
   video_url: process.env.VIDEO_URL || "https://www.youtube.com/watch?v=TBD",
-  run_seconds: (() => { const ts = ["living-room", "bathroom", "cloakroom"].map((id) => run(id).timingsMs.totalMs).sort((a: number, b: number) => a - b); return Math.round(ts[1] / 1000); })(),
-  run_seconds_max: Math.max(...["living-room", "bathroom", "cloakroom"].map((id) => Math.round(run(id).timingsMs.totalMs / 1000))),
+  run_seconds: (() => { const ts = ["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"].map((id) => run(id).timingsMs.totalMs).sort((a: number, b: number) => a - b); return Math.round(ts[2] / 1000); })(),
+  run_seconds_min: Math.min(...["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"].map((id) => Math.round(run(id).timingsMs.totalMs / 1000))),
+  run_seconds_max: Math.max(...["living-room", "bathroom", "cloakroom", "recess-friend", "small-friend"].map((id) => Math.round(run(id).timingsMs.totalMs / 1000))),
   sm_frame_cm: cm(sm.span?.frameWidthMm ?? sm.widthMm), sm_votes: sm.span?.votes ?? "",
   ...(() => { const b = JSON.parse(readFileSync("public/samples/baseline.json", "utf8")).rows; const o: any = {};
     for (const [k, id] of [["lr", "living-room"], ["bt", "bathroom"], ["sm", "cloakroom"]]) { const r = b.find((x: any) => x.id === id); o[`${k}_spark_cm`] = r.spark_alone_median_cm; o[`${k}_spark_range`] = `${Math.min(...r.spark_alone_cm)} to ${Math.max(...r.spark_alone_cm)}`; }
@@ -105,13 +144,18 @@ const facts: Record<string, string | number> = {
     const label: Record<string, string> = { "living-room": "Living room", bathroom: "Bathroom", cloakroom: "Recess opening", "recess-friend": "Recess opening, another home", "small-friend": "Small window, another home" };
     const b2 = JSON.parse(readFileSync("public/samples/baseline-2.json", "utf8")).rows;
     o.baseline_count = b2.length;
-    o.baseline_table = ["| Window | Tape | Muse Spark alone, 3 Nov | Muse Spark alone, 4 Nov | Its range across frames (4 Nov) | Measure Once |", "|---|---|---|---|---|---|",
-      ...b2.map((r2: any) => { const t = row(tapeOf[r2.id]); const r1 = b.find((x: any) => x.id === r2.id);
-        return `| ${label[r2.id]} | ${cm(t.tape_mm)} cm | ${r1 ? r1.spark_alone_median_cm + " cm" : "not run"} | ${r2.spark_alone_median_cm} cm | ${Math.min(...r2.spark_alone_cm)} to ${Math.max(...r2.spark_alone_cm)} cm | ${r2.measured_cm} cm |`; })].join("\n");
+    const b3 = JSON.parse(readFileSync("public/samples/baseline-3.json", "utf8")).rows;
+    o.baseline_table = ["| Window | Tape | Muse Spark alone (median of its frames) | Its answers across frames | Measure Once |", "|---|---|---|---|---|",
+      ...b3.map((r3: any) => { const t = row(tapeOf[r3.id]);
+        return `| ${label[r3.id]} | ${cm(t.tape_mm)} cm | ${r3.spark_alone_median_cm} cm (${signed(Math.round(r3.spark_alone_median_cm * 10 - t.tape_mm))} mm) | ${Math.min(...r3.spark_alone_cm)} to ${Math.max(...r3.spark_alone_cm)} cm | ${r3.measured_cm} cm (${signed(Math.round(r3.measured_cm * 10 - t.tape_mm))} mm) |`; })].join("\n");
+    const errs3 = b3.map((r3: any) => Math.abs(r3.spark_alone_median_cm * 10 - row(tapeOf[r3.id]).tape_mm) / 10).sort((x: number, y: number) => x - y);
+    o.spark3_err_median = errs3[Math.floor((errs3.length - 1) / 2)].toFixed(0); o.spark3_err_max = errs3[errs3.length - 1].toFixed(0);
+    o.spark3_swing = Math.max(...b3.map((r3: any) => Math.max(...r3.spark_alone_cm) - Math.min(...r3.spark_alone_cm)));
     const errs2 = b2.map((r2: any) => Math.abs(r2.spark_alone_median_cm * 10 - row(tapeOf[r2.id]).tape_mm) / 10);
     o.spark2_err_min = Math.min(...errs2).toFixed(0); o.spark2_err_max = Math.max(...errs2).toFixed(0);
     return o; })(),
   ref_span: ref("src/span.ts", "export async function pickSpan"),
+  ref_mask: ref("src/span.ts", "export const maskNumbers"),
   ref_open: ref("src/open.ts", "export async function openJson"),
   ...(() => { const rp = JSON.parse(readFileSync("public/samples/repeat.json", "utf8")).rows; const all = Object.values(rp).flat() as any[];
     const spreads = Object.values(rp).map((v: any) => Math.max(...v.map((x: any) => x.widthMm)) - Math.min(...v.map((x: any) => x.widthMm)));

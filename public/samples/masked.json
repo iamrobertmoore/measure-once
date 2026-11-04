@@ -1,0 +1,116 @@
+{
+ "ranAt": "2026-11-04T10:48:11.882Z",
+ "note": "buyer's lengths hidden from the edge pick",
+ "rows": [
+  {
+   "id": "living-room",
+   "ok": true,
+   "widthMm": 2186.6245539273036,
+   "recess": false,
+   "votes": "5 of 5 agreed with the outline",
+   "why": "outer trim on wall face",
+   "recordedWidthMm": 2198.0462899763866,
+   "recordedRecess": false,
+   "secs": 34.189
+  },
+  {
+   "id": "living-room",
+   "ok": true,
+   "widthMm": 2196.442420160692,
+   "recess": false,
+   "votes": "5 of 5 agreed with the outline",
+   "why": "outer window trim edges",
+   "recordedWidthMm": 2198.0462899763866,
+   "recordedRecess": false,
+   "secs": 31.511
+  },
+  {
+   "id": "bathroom",
+   "ok": true,
+   "widthMm": 1209.6905419587995,
+   "recess": false,
+   "votes": "1 of 5 agreed with the outline",
+   "why": "B is recess opening, C is inner frame",
+   "recordedWidthMm": 1209.6866404511238,
+   "recordedRecess": false,
+   "secs": 87.248
+  },
+  {
+   "id": "bathroom",
+   "ok": true,
+   "widthMm": 1209.694618122888,
+   "recess": false,
+   "votes": "4 of 5 agreed with the outline",
+   "why": "outer wood trim edges",
+   "recordedWidthMm": 1209.6866404511238,
+   "recordedRecess": false,
+   "secs": 42.876
+  },
+  {
+   "id": "cloakroom",
+   "ok": true,
+   "widthMm": 534.6549833616504,
+   "recess": true,
+   "votes": "4 of 5",
+   "why": "recess opening not frame",
+   "recordedWidthMm": 534.7372347147897,
+   "recordedRecess": true,
+   "secs": 85.333
+  },
+  {
+   "id": "cloakroom",
+   "ok": true,
+   "widthMm": 540.6585897762552,
+   "recess": true,
+   "votes": "4 of 5",
+   "why": "use recess not frame",
+   "recordedWidthMm": 534.7372347147897,
+   "recordedRecess": true,
+   "secs": 27.119
+  },
+  {
+   "id": "recess-friend",
+   "ok": true,
+   "widthMm": 601.0536087881414,
+   "recess": true,
+   "votes": "4 of 5",
+   "why": "recess opening edges on wall face",
+   "recordedWidthMm": 601.5001197613243,
+   "recordedRecess": true,
+   "secs": 91.893
+  },
+  {
+   "id": "recess-friend",
+   "ok": true,
+   "widthMm": 601.5001197613243,
+   "recess": true,
+   "votes": "3 of 5",
+   "why": "recess opening not frame",
+   "recordedWidthMm": 601.5001197613243,
+   "recordedRecess": true,
+   "secs": 32.753
+  },
+  {
+   "id": "small-friend",
+   "ok": true,
+   "widthMm": 606.518932386502,
+   "recess": false,
+   "votes": "the 5 frames didn't agree on a wider opening",
+   "why": "outside trim on wall face",
+   "recordedWidthMm": 606.518932386502,
+   "recordedRecess": false,
+   "secs": 51.415
+  },
+  {
+   "id": "small-friend",
+   "ok": true,
+   "widthMm": 606.5189154658576,
+   "recess": false,
+   "votes": "the 5 frames didn't agree on a wider opening",
+   "why": "outer trim edges on wall face",
+   "recordedWidthMm": 606.518932386502,
+   "recordedRecess": false,
+   "secs": 27.786
+  }
+ ]
+}
