@@ -180,7 +180,7 @@ async function finish(api: OpenAI, apiKey: string, a: { per: StillResult[]; fram
   if (a.draft !== false) {
     const t1 = t();
     const hs2 = result.handSpan ? [Math.round(result.handSpan.leftPastFrameMm / 10), Math.round(result.handSpan.rightPastFrameMm / 10)] as [number, number] : undefined;
-    try { result.draft = await draftReply(api, { transcript, buyerMessage: a.buyerMessage, frameWidthMm: sizingMm, windowFrameMm: result.span?.adopted ? w.median : undefined, spreadMm: w.iqr, options: result.options, diameterMm: diameter, handSpanCm: hs2 }); result.models.push(result.draft.ranOn || "muse-spark-1.3"); }
+    try { result.draft = await draftReply(api, { transcript, buyerMessage: a.buyerMessage, frameWidthMm: sizingMm, windowFrameMm: result.span?.adopted ? w.median : undefined, spreadMm: w.iqr, options: result.options, diameterMm: diameter, handSpanCm: hs2, framesUsed: result.framesUsed }); result.models.push(result.draft.ranOn || "muse-spark-1.3"); }
     catch (e: any) { result.reason = `reply draft failed: ${e.message}`; }
     timings.draftMs = t() - t1;
   }

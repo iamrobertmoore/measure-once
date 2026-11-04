@@ -235,6 +235,10 @@ a { color: inherit; }
 }
 .numeral .unit { font-size: .3em; font-weight: 600; font-stretch: 100%; color: var(--muted); margin-left: .14em; letter-spacing: 0; }
 .fact-sub { font-size: 14px; color: var(--muted); }
+.fact-likely { font-size: 16px; font-weight: 650; color: var(--text); margin-bottom: 4px; }
+.fact-holds { font-size: 14px; margin-top: 10px; display: flex; gap: 9px; align-items: baseline; color: var(--ok); }
+.fact-holds i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; transform: translateY(-1px); }
+.fact-holds.no { color: #ffb37a; } .fact-holds.no i { background: #ffb37a; }
 .fact-span { font-size: 14px; line-height: 1.5; color: var(--muted); margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: rgba(255,201,60,.07); border: 1px solid rgba(255,201,60,.22); }
 .fact-span b { color: var(--tape); font-weight: 700; }
 .spark-tag { display: inline-block; font-size: 11.5px; font-weight: 700; color: #0a1424; background: var(--tape); border-radius: 4px; padding: 1px 6px; margin-right: 4px; }
@@ -480,3 +484,10 @@ a { color: inherit; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ---------- the buyer link ---------- */
+.buylink { max-width: var(--max); margin: 110px auto 0; padding: 0 24px; }
+.buylink-copy { max-width: 720px; padding: 34px 36px; border-radius: 16px; background: var(--desk); border: 1px solid var(--line); }
+.buylink-copy > p { font-size: 17px; line-height: 1.55; color: var(--muted); margin-top: 12px; }
+.buylink-urls { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.buylink-note { font-size: 13px !important; color: var(--faint) !important; }

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measure your window</title>
+<meta name="description" content="Film your window with a sheet of A4 on the wall, and the maker gets the size they need to make yours.">
+<meta name="theme-color" content="#08111f">
+<link rel="preload" href="fonts/mona-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="buyer.css">
+<script type="module" src="js/buyer.js"></script>
+</head>
+<body class="buyer">
+<header class="top">
+  <span class="brand"><svg class="brand-mark" viewBox="0 0 40 24" aria-hidden="true"><rect x="0" y="5" width="40" height="14" rx="2" fill="#ffc93c"/><path d="M6 5v6M12 5v4M18 5v6M24 5v4M30 5v6M36 5v4" stroke="#08111f" stroke-width="1.8"/></svg><span id="shopName">Your maker</span></span>
+  <span class="by">sized with Measure Once</span>
+</header>
+
+<main class="b-main" id="main">
+  <section class="b-ask" id="ask">
+    <h1 id="askTitle">Send your window, get the right size</h1>
+    <p class="b-lede" id="askLede">Made-to-measure has to be right first time. Instead of measuring and guessing, film your window and your maker gets everything they need.</p>
+    <ol class="b-steps">
+      <li><b>Tape a sheet of A4</b> (or US Letter) flat on the wall beside the window.</li>
+      <li><b>Film for about 10 seconds</b> from across the room, with both sides of the window in shot. Say what you'd like.</li>
+      <li><b>Send it here.</b> Two or three photos work too.</li>
+    </ol>
+    <div class="b-pick" id="drop">
+      <label class="btn btn-tape" for="file">Choose your video or photos</label>
+      <input type="file" id="file" class="vh" accept="video/*,image/*" multiple>
+      <label class="btn btn-ghost b-cam" for="cam">Film it now</label>
+      <input type="file" id="cam" class="vh" accept="video/*" capture="environment">
+      <p class="b-chosen" id="chosen">Nothing chosen yet.</p>
+    </div>
+    <button type="button" class="btn btn-tape b-go" id="go" disabled>Measure my window</button>
+    <p class="run-status" id="status" role="status" aria-live="polite"></p>
+    <p class="b-note">Your clip isn't stored. The frames and sound go to Meta's model API to be measured, and only the result reaches your maker.</p>
+  </section>
+
+  <section class="b-result" id="result" hidden aria-labelledby="resTitle">
+    <div class="b-hero"><canvas id="heroCanvas" role="img" aria-label="Your window, measured"></canvas></div>
+    <div class="b-side">
+      <p class="fact-label" id="resLabel">Your window</p>
+      <p class="numeral"><span id="fw">0.0</span><span class="unit">cm</span></p>
+      <p class="fact-likely" id="likely"></p>
+      <h2 id="resTitle" class="b-sugg"></h2>
+      <p class="fact-holds" id="holds" hidden><i aria-hidden="true"></i><span></span></p>
+      <p class="b-note2" id="resNote"></p>
+      <button type="button" class="btn btn-tape" id="send"><span>Send this to <span class="maker">your maker</span></span></button>
+      <p class="send-status" id="sendStatus" role="status" aria-live="polite"></p>
+      <button type="button" class="link-btn b-again" id="again">Measure a different window</button>
+    </div>
+  </section>
+
+  <section class="b-refused" id="refused" hidden>
+    <h2>Let's try that again</h2>
+    <p id="fix"></p>
+    <button type="button" class="btn btn-tape" id="again2">Try another clip</button>
+  </section>
+</main>
+
+<footer class="foot b-foot">
+  <p>Want this link for your own shop? Measure Once sizes curtain poles and roller blinds from one phone clip. <a href="index.html">See how it works</a>.</p>
+</footer>
+</body>
+</html>

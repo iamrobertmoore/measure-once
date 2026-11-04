@@ -3,6 +3,7 @@
 import type OpenAI from "openai";
 import { catalogue, sizeOptions, type Option } from "./catalogue.ts";
 import { openJson, OPEN_MODEL, OPEN_WHERE } from "./open.ts";
+import { likelyMm, poleAcross } from "./sure.ts";
 
 export type Draft = {
   curtainType: "eyelet" | "rings" | "tab top" | "pinch pleat" | "unknown";
@@ -21,7 +22,7 @@ centre bracket under the join; finials add length at each end; rings are not sol
 holdbacks are priced individually; returns aren't accepted on cut poles, so sizing must be right first time.`;
 
 export async function draftReply(api: OpenAI, input: {
-  transcript: string; buyerMessage?: string; frameWidthMm: number; windowFrameMm?: number; spreadMm: number; options: Option[]; diameterMm: number; model?: string; handSpanCm?: [number, number]; baseURL?: string;
+  transcript: string; buyerMessage?: string; frameWidthMm: number; windowFrameMm?: number; spreadMm: number; options: Option[]; diameterMm: number; model?: string; handSpanCm?: [number, number]; baseURL?: string; framesUsed?: number;
 }): Promise<Draft> {
   const facts = {
     measured_width_cm: +(input.frameWidthMm / 10).toFixed(1),
@@ -38,6 +39,17 @@ export async function draftReply(api: OpenAI, input: {
     house_overhang_band_cm: [catalogue.overhangMm.min / 10, catalogue.overhangMm.max / 10],
     ...(input.handSpanCm ? { buyer_pointed_past_frame_cm: { left: input.handSpanCm[0], right: input.handSpanCm[1] } } : {}),
   };
+  // How sure: the likely range of the width, and whether the first option still fits at both ends of it.
+  const L = likelyMm(input.frameWidthMm, input.spreadMm, input.framesUsed ?? 6, !!input.windowFrameMm);
+  const o0 = input.options[0];
+  if (o0) {
+    const A = poleAcross(o0.cutToMm ?? o0.stockCm * 10, L.lo, L.hi);
+    Object.assign(facts, {
+      likely_width_range_cm: [+(L.lo / 10).toFixed(1), +(L.hi / 10).toFixed(1)],
+      first_option_fits_across_range: A.holds,
+      first_option_past_each_side_across_range_cm: [+(A.least / 10).toFixed(1), +(A.most / 10).toFixed(1)],
+    });
+  }
   // Lengths the buyer said out loud or wrote. If one disagrees with what we measured, the reply must say so and ask
   // which edges they meant (a window set back in a recess is the usual cause: the pole spans the opening on the wall,
   // the frame is behind it), rather than quietly preferring either number.
@@ -60,7 +72,7 @@ What the buyer said in the clip: "${input.transcript || "(nothing)"}"
 ${input.buyerMessage ? `Their message: "${input.buyerMessage}"` : ""}
 
 ${clash.length ? `The buyer said ${clash[0]} cm but the tool measured ${facts.measured_width_cm} cm. Do not choose between them: in the reply, say both numbers plainly, give the size for each side by side (the measured one from options, theirs from options_if_buyer_number_is_the_span), and ask which edges their ${clash[0]} cm runs between (for example a recess opening around a set-back window, where the pole would span the opening), so they can tell you which to send. Put that question in "questions" too.\n` : ""}Pick the best option for what they want, and draft my reply: the size with the exact cut per end if any,
-one line on the alternative if there is one, and one line on finial clearance. Write two or three short paragraphs of plain, natural sentences (no run-on sentences, no list of one-line facts). Under 120 words. ${extra}
+one line on the alternative if there is one, and one line on finial clearance. If first_option_fits_across_range is false, ask them to check the width with a tape before ordering; if it is true, you may say in one short clause that it still fits even if the window is a little wider or narrower than measured. Write two or three short paragraphs of plain, natural sentences (no run-on sentences, no list of one-line facts). Under 120 words. ${extra}
 Return JSON: {"curtainType": "eyelet|rings|tab top|pinch pleat|unknown", "chosenStockCm": number, "diameterMm": number, "reply": string, "questions": string[]}`;
   const alt = (facts as any).options_if_buyer_number_is_the_span?.[0];
   const altLen = alt ? (alt.cut_to_cm ?? alt.stock_length_cm) : null;
@@ -126,6 +138,7 @@ export function checkNumbers(reply: string, facts: any, questions: string[] = []
   for (const v of facts.buyer_said_cm ?? []) addCm(v);
   for (const v of facts.house_overhang_band_cm ?? []) addCm(v);
   for (const v of facts.extra_cm ?? []) addCm(v);
+  for (const v of [...(facts.likely_width_range_cm ?? []), ...(facts.first_option_past_each_side_across_range_cm ?? [])]) addCm(v);
   for (const o of [...facts.options, ...(facts.options_if_buyer_number_is_the_span ?? [])]) { addCm(o.stock_length_cm); addCm(o.cut_to_cm); addCm(o.cut_each_end_cm); addCm(o.past_frame_each_side_cm); }
   mm.push(facts.diameter_mm, facts.measurement_spread_mm);
   const counts = new Set<number>([1, 2, 3, 4]);

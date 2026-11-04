@@ -13,7 +13,7 @@ for (const id of process.argv.slice(2)) {
   const hs = run.handSpan ? [Math.round(run.handSpan.leftPastFrameMm / 10), Math.round(run.handSpan.rightPastFrameMm / 10)] as [number, number] : undefined;
   const d = await draftReply(client(key()), {
     transcript: run.transcript, frameWidthMm: run.widthMm, windowFrameMm: run.span?.adopted ? run.span.frameWidthMm : undefined,
-    spreadMm: run.spreadMm, options: run.options, diameterMm: run.draft?.diameterMm ?? 35, handSpanCm: hs,
+    spreadMm: run.spreadMm, framesUsed: run.framesUsed, options: run.options, diameterMm: run.draft?.diameterMm ?? 35, handSpanCm: hs,
   });
   run.draft = d;
   run.models = [...run.models.filter((m: string) => !(m.includes("muse-spark") && !m.includes("which edges"))), d.ranOn || "muse-spark-1.3"];

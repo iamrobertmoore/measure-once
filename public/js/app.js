@@ -1,4 +1,5 @@
 import { Hero } from "./hero.js";
+import { likely, poleHolds } from "./sure.js";
 import { videoFrames, audioWav, photoFrames, encodeFrames, DecodeError, MAX_PHOTO_COUNT } from "./yours.js";
 
 const $ = (id) => document.getElementById(id);
@@ -456,7 +457,8 @@ function renderFacts(run, id, still = false) {
   let html = `<div>
     <p class="fact-label">${opening ? "Opening width" : "Frame width"}</p>
     <p class="numeral"><span id="fw">${reduce ? cm1(run.widthMm) : "0.0"}</span><span class="unit">cm</span></p>
-    <p class="fact-sub">Measured on ${used} frame${used === 1 ? "" : "s"}${run.spreadMm != null ? `; they agree with each other within \u00b1${cm1(run.spreadMm / 2)} cm` : ""}</p>
+    <p class="fact-likely">Likely ${cm1(likely(run).lo)} to ${cm1(likely(run).hi)} cm</p>
+    <p class="fact-sub">Measured on ${used} frame${used === 1 ? "" : "s"}. The range adds how far ${run.span?.adopted ? "recessed" : "plain"} windows have been from a steel tape.</p>
     ${sl ? `<p class="fact-span"><span class="spark-tag">Muse Spark</span> ${sl}</p>` : ""}
   </div>`;
   if (blinds) html += blindFacts(run);
@@ -467,6 +469,7 @@ function renderFacts(run, id, still = false) {
       <p class="fact-main">${esc(optionTitle(o))}</p>
       ${cut ? `<p class="fact-line"><i class="cutmark" aria-hidden="true"></i>${cm1(o.cutPerEndMm)} cm off each end</p>` : `<p class="fact-line"><i class="polemark" aria-hidden="true"></i>No cutting needed</p>`}
       <p class="fact-line">${cm1(o.overhangEachSideMm)} cm past the ${edge} each side</p>
+      ${(() => { const h = poleHolds(run, o); return h ? `<p class="fact-holds${h.holds ? "" : " no"}"><i aria-hidden="true"></i>${h.holds ? `Fits anywhere in the likely range: ${cm1(h.least)} to ${cm1(h.most)} cm past each side` : `Might not fit at the edge of the likely range, so the reply asks for a quick tape check`}</p>` : ""; })()}
     </div>`;
   }
   // the working: for anyone who wants to check it, out of the way for everyone else
