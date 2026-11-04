@@ -11,7 +11,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 // Each maker: their name, who checks the size, and whose rules size it.
 const SHOPS = {
-  creationsfromrob: { name: "Creationsfromrob", maker: "Rob", seller: "poles", what: "a curtain pole", ask: "Rob makes wooden curtain poles to fit. Film your window and he'll get the width he needs to cut yours." },
+  creationsfromrob: { name: "Creationsfromrob", maker: "Rob", seller: "poles", what: "a curtain pole", ask: "Rob makes wooden curtain poles, cut to fit. Film your window and he'll get the width he needs to size yours." },
   "example-curtains": { name: "Example curtain maker", maker: "the maker", seller: "curtains", what: "curtains", ask: "An example made-to-measure curtain maker, using the usual trade rules. Film your window to get the curtain size." },
   "example-blinds": { name: "Example blind maker", maker: "the maker", seller: "blinds", what: "a roller blind", ask: "An example made-to-measure roller blind maker, using the usual trade rules. Film your window to get the blind size." },
 };
